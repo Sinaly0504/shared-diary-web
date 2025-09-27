@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>写新日记 - 共享日记</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header class="main-header">
+        <h1>写一篇新日记</h1>
+    </header>
+
+    <main class="content-area">
+        <form class="diary-form">
+            <div class="form-group">
+                <label for="diary-title">标题</label>
+                <input type="text" id="diary-title" name="diary-title" placeholder="给你的日记起个名字吧">
+            </div>
+            <div class="form-group">
+                <label for="diary-content">内容</label>
+                <textarea id="diary-content" name="diary-content" rows="15" placeholder="今天发生了什么..."></textarea>
+            </div>
+            <div class="form-actions">
+                <a href="index.html" class="nav-button secondary">返回首页</a>
+                <button type="submit" class="nav-button">发布日记</button>
+            </div>
+        </form>
+    </main>
+
+    <footer class="main-footer">
+        <p>&copy; 2025 ShareDiary. All Rights Reserved.</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

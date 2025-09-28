@@ -1,4 +1,4 @@
-// --- 共享日记 脚本文件 v12.0: 实现删除功能 ---
+// --- 共享日记 脚本文件 v13.0: 实现修改功能 (前端部分) ---
 
 // =================================================================
 // 辅助函数 (Helper Functions)
@@ -103,6 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const diaryDetailContainer = document.getElementById('diary-detail-container');
     const signupForm = document.getElementById('signup-form');
     const loginForm = document.getElementById('login-form');
+    const editForm = document.getElementById('edit-form');
 
     // 如果是主页 (index.html)
     if (diaryContainer) {
@@ -125,23 +126,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('detail-meta').innerHTML = `<span class="author">By: ${diary.username}</span><span class="date">${formattedDate}</span>`;
                 
                 const deleteButton = document.getElementById('delete-button');
+                const editLink = document.getElementById('edit-link');
                 const token = localStorage.getItem('jwtToken');
+
                 if (token) {
                     const currentUser = parseJwt(token);
                     if (currentUser.username === diary.username) {
                         deleteButton.style.display = 'inline-block';
-                        
-                        // --- 【关键修改】为删除按钮添加事件监听 ---
+                        editLink.style.display = 'inline-block';
+                        editLink.href = `edit.html?id=${diaryId}`;
+
                         deleteButton.addEventListener('click', async () => {
                             if (confirm('你确定要删除这篇日记吗？此操作无法撤销。')) {
                                 try {
                                     const deleteResponse = await fetch(`/api/diaries/${diaryId}`, {
                                         method: 'DELETE',
-                                        headers: {
-                                            'Authorization': `Bearer ${token}`
-                                        }
+                                        headers: { 'Authorization': `Bearer ${token}` }
                                     });
-
                                     if (deleteResponse.ok) {
                                         alert('删除成功！');
                                         window.location.href = 'index.html';
@@ -155,13 +156,13 @@ document.addEventListener('DOMContentLoaded', () => {
                                 }
                             }
                         });
-                        // --- 修改结束 ---
-                        
                     } else {
                         deleteButton.style.display = 'none';
+                        editLink.style.display = 'none';
                     }
                 } else {
                     deleteButton.style.display = 'none';
+                    editLink.style.display = 'none';
                 }
             } catch (error) {
                 console.error('加载日记详情失败:', error);
@@ -169,6 +170,40 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         if (diaryId) loadDiaryDetail();
+    }
+    // 如果是编辑页面 (edit.html)
+    else if (editForm) {
+        const params = new URLSearchParams(window.location.search);
+        const diaryId = params.get('id');
+        const cancelLink = document.getElementById('cancel-edit-link');
+        if (cancelLink) cancelLink.href = `detail.html?id=${diaryId}`;
+
+        async function populateEditForm() {
+            try {
+                const response = await fetch(`/api/diaries/${diaryId}`);
+                if (!response.ok) throw new Error('无法加载日记内容');
+                const diary = await response.json();
+                
+                const token = localStorage.getItem('jwtToken');
+                if (!token || parseJwt(token).username !== diary.username) {
+                    alert('无权编辑此日记！');
+                    window.location.href = `detail.html?id=${diaryId}`;
+                    return;
+                }
+                document.getElementById('diary-title').value = diary.title;
+                document.getElementById('diary-content').value = diary.content;
+            } catch (error) {
+                console.error('填充编辑表单失败:', error);
+                alert('加载日记内容失败，请重试。');
+                window.location.href = 'index.html';
+            }
+        }
+        if (diaryId) {
+            populateEditForm();
+        } else {
+            alert('未指定要编辑的日记！');
+            window.location.href = 'index.html';
+        }
     }
     // 如果是“写日记”页面 (write.html)
     else if (diaryForm) {
@@ -232,48 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    // 【新增】如果是编辑页面 (edit.html)
-    else if (editForm) {
-        const params = new URLSearchParams(window.location.search);
-        const diaryId = params.get('id');
-
-        // 设置“取消”按钮的返回链接
-        const cancelLink = document.getElementById('cancel-edit-link');
-        if (cancelLink) cancelLink.href = `detail.html?id=${diaryId}`;
-
-        // 定义一个函数，用于加载日记数据并填充表单
-        async function populateEditForm() {
-            try {
-                const response = await fetch(`/api/diaries/${diaryId}`);
-                if (!response.ok) throw new Error('无法加载日记内容');
-                const diary = await response.json();
-
-                // 权限验证：再次确认当前用户是作者
-                const token = localStorage.getItem('jwtToken');
-                if (!token || parseJwt(token).username !== diary.username) {
-                    alert('无权编辑此日记！');
-                    window.location.href = `detail.html?id=${diaryId}`;
-                    return;
-                }
-
-                // 将获取到的数据填充到表单中
-                document.getElementById('diary-title').value = diary.title;
-                document.getElementById('diary-content').value = diary.content;
-
-            } catch (error) {
-                console.error('填充编辑表单失败:', error);
-                alert('加载日记内容失败，请重试。');
-                window.location.href = 'index.html';
-            }
-        }
-
-        if (diaryId) {
-            populateEditForm();
-        } else {
-            alert('未指定要编辑的日记！');
-            window.location.href = 'index.html';
-        }
-    }
+    
     // 如果是登录页面 (login.html)
     else if (loginForm) {
         const authMessage = document.getElementById('auth-message');

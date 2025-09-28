@@ -285,20 +285,62 @@ body.dark-theme {
     font-family: 'Ma Shan Zheng', sans-serif;
 }
 
-/* 认证表单内的表单组，增大间距，解决拥挤问题 */
+/* --- 统一头部链接字体 --- */
+.user-auth-links {
+  /* 为功能性链接使用一套清晰、专业的无衬线字体 */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+/* --- 专业级认证表单布局优化 --- */
+
+/* 优化卡片标题 */
+.auth-form h2 {
+  text-align: center;
+  margin-bottom: 40px; /* 重点：增加标题和下方内容的距离 */
+  font-size: 2em;
+}
+
+/* 优化每个表单组（标签 + 输入框）*/
 .auth-form .form-group {
-    gap: 15px; /* 进一步拉开距离 */
+  margin-bottom: 20px; /* 增加每个组之间的垂直间距 */
 }
 
-/* --- 统一认证页面的间距和消息样式 --- */
-.auth-form .form-group label {
-    margin-bottom: -5px; /* 调整标签和输入框的间距 */
+/* 优化标签样式 */
+.auth-form label {
+  display: block; /* 确保标签自己占一行 */
+  margin-bottom: 8px; /* 标签和输入框之间的距离 */
+  font-size: 1rem; /* 使用一个相对单位，更灵活 */
+  color: var(--font-color-secondary);
 }
 
-.auth-message {
-    color: #d9534f; /* 默认使用红色来显示错误消息 */
-    text-align: center;
-    margin-top: 15px; /* 与上方的元素保持间距 */
-    min-height: 1em; /* 占据固定高度，防止页面在消息出现时跳动 */
-    font-family: "Helvetica Neue", Helvetica, sans-serif; /* 使用更清晰的非书法字体显示消息 */
+/* 优化输入框样式 */
+.auth-form input {
+  width: 100%; /* 让输入框撑满整个卡片宽度 */
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px; /* 稍微增加一点圆角 */
+  font-size: 1.1rem;
+  background-color: var(--bg-color-main); /* 背景色和页面背景稍作区分 */
+}
+
+/* 重点：重新设计底部的操作区域 */
+.auth-form .form-actions {
+  padding-top: 10px; /* 和上面的输入框拉开一点距离 */
+  display: flex;
+  flex-direction: column; /* 让内部元素垂直排列 */
+  align-items: center;    /* 水平居中 */
+  gap: 20px;              /* 增加“切换链接”和“主按钮”之间的距离 */
+}
+
+/* 突出主要的操作按钮 */
+.auth-form .nav-button {
+  width: 100%; /* 让按钮也撑满宽度，视觉上更重要 */
+  padding: 12px;
+  font-size: 1.2rem;
+}
+
+/* 优化次要的切换链接 */
+.auth-form .auth-switch {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; /* 使用清晰的系统字体 */
+  font-size: 0.9rem;
 }

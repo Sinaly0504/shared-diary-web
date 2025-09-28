@@ -432,11 +432,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const likeCountSpan = likeButton.nextElementSibling;
         const initialLikeCount = parseInt(likeCountSpan.textContent);
 
-        // 1. 乐观更新 UI
         const newLikedState = !isLiked;
         likeButton.dataset.liked = newLikedState;
         likeButton.classList.toggle('liked');
-        likeButton.innerHTML = newLikedState ? '♥' : '♡';
         likeCountSpan.textContent = newLikedState ? initialLikeCount + 1 : initialLikeCount - 1;
 
         try {
@@ -452,10 +450,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error("点赞/取消点赞失败:", error);
-            // 2. 如果请求失败，则回滚 UI
             likeButton.dataset.liked = isLiked;
             likeButton.classList.toggle('liked');
-            likeButton.innerHTML = isLiked ? '♥' : '♡';
             likeCountSpan.textContent = initialLikeCount;
             alert('操作失败，请稍后重试。');
         }

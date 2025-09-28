@@ -1,4 +1,4 @@
-// --- 共享日记 脚本文件 v17.0: 实现“我的日记”功能 ---
+// --- 共享日记 脚本文件 v18.0: 升级为用户下拉菜单 ---
 
 // =================================================================
 // 辅助函数 (Helper Functions)
@@ -25,13 +25,32 @@ function updateHeaderUI() {
     const decodedToken = parseJwt(token);
     if (decodedToken && decodedToken.username) {
       const username = decodedToken.username;
+      
       authLinksContainer.innerHTML = `
-        <a href="mydiaries.html" class="nav-link">我的日记</a>
-        <span class="welcome-message">欢迎, ${username}</span>
-        <a href="#" id="logout-link">退出</a>
+        <div class="user-menu">
+            <button class="user-menu-trigger">欢迎, ${username} ▼</button>
+            <div class="user-menu-dropdown">
+                <a href="mydiaries.html">我的日记</a>
+                <a href="#" id="logout-link">退出</a>
+            </div>
+        </div>
       `;
-      if (writeDiaryBtn) writeDiaryBtn.style.display = 'inline-block';
-      const logoutLink = document.getElementById('logout-link');
+
+      const trigger = authLinksContainer.querySelector('.user-menu-trigger');
+      const dropdown = authLinksContainer.querySelector('.user-menu-dropdown');
+      const logoutLink = authLinksContainer.querySelector('#logout-link');
+
+      trigger.addEventListener('click', (event) => {
+        event.stopPropagation();
+        dropdown.classList.toggle('is-open');
+      });
+
+      document.addEventListener('click', () => {
+        if (dropdown.classList.contains('is-open')) {
+          dropdown.classList.remove('is-open');
+        }
+      });
+
       if (logoutLink) {
         logoutLink.addEventListener('click', function(event) {
           event.preventDefault();
@@ -39,6 +58,8 @@ function updateHeaderUI() {
           window.location.href = 'index.html';
         });
       }
+
+      if (writeDiaryBtn) writeDiaryBtn.style.display = 'inline-block';
     }
   } else if (authLinksContainer) {
     authLinksContainer.innerHTML = `
@@ -127,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const diaryContainer = document.getElementById('diary-container');
-    const myDiariesTitle = document.querySelector('.page-title'); // 用来识别“我的日记”页
+    const myDiariesTitle = document.querySelector('.page-title');
     const diaryDetailContainer = document.getElementById('diary-detail-container');
     const diaryForm = document.querySelector('.diary-form');
     const editForm = document.getElementById('edit-form');
@@ -144,10 +165,64 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (diaryDetailContainer) {
         const params = new URLSearchParams(window.location.search);
         const diaryId = params.get('id');
-        async function loadDiaryDetail() { /* ... */ }
+        
+        async function loadDiaryDetail() {
+            try {
+                const response = await fetch(`/api/diaries/${diaryId}`);
+                if (!response.ok) throw new Error('日记未找到');
+                const diary = await response.json();
+                
+                document.getElementById('detail-title').textContent = diary.title;
+                document.getElementById('detail-content').textContent = diary.content;
+                const formattedDate = new Date(diary.created_at).toLocaleDateString();
+                document.getElementById('detail-meta').innerHTML = `<span class="author">By: ${diary.username}</span><span class="date">${formattedDate}</span>`;
+                
+                const deleteButton = document.getElementById('delete-button');
+                const editLink = document.getElementById('edit-link');
+                const token = localStorage.getItem('jwtToken');
+
+                if (token) {
+                    const currentUser = parseJwt(token);
+                    if (currentUser.username === diary.username) {
+                        deleteButton.style.display = 'inline-block';
+                        editLink.style.display = 'inline-block';
+                        editLink.href = `edit.html?id=${diaryId}`;
+
+                        deleteButton.addEventListener('click', async () => {
+                            if (confirm('你确定要删除这篇日记吗？此操作无法撤销。')) {
+                                try {
+                                    const deleteResponse = await fetch(`/api/diaries/${diaryId}`, {
+                                        method: 'DELETE',
+                                        headers: { 'Authorization': `Bearer ${token}` }
+                                    });
+                                    if (deleteResponse.ok) {
+                                        alert('删除成功！');
+                                        window.location.href = 'index.html';
+                                    } else {
+                                        const errorResult = await deleteResponse.json();
+                                        alert(`删除失败: ${errorResult.message}`);
+                                    }
+                                } catch (error) {
+                                    console.error('删除请求失败:', error);
+                                    alert('删除失败，请检查网络连接。');
+                                }
+                            }
+                        });
+                    } else {
+                        deleteButton.style.display = 'none';
+                        editLink.style.display = 'none';
+                    }
+                } else {
+                    deleteButton.style.display = 'none';
+                    editLink.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('加载日记详情失败:', error);
+                diaryDetailContainer.innerHTML = '<h1>哦哦，没有找到这篇日记...</h1><a href="index.html" class="nav-button secondary">返回首页</a>';
+            }
+        }
         if (diaryId) loadDiaryDetail();
     }
-    // 如果是编辑页面 (edit.html)
     else if (editForm) {
         const params = new URLSearchParams(window.location.search);
         const diaryId = params.get('id');
@@ -168,7 +243,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 document.getElementById('diary-title').value = diary.title;
                 document.getElementById('diary-content').value = diary.content;
-                // 在填充表单时，也设置隐私等级的默认值
                 document.getElementById('privacy-level').value = diary.privacy_level;
             } catch (error) {
                 console.error('填充编辑表单失败:', error);
@@ -176,13 +250,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.location.href = 'index.html';
             }
         }
-        if (diaryId) populateEditForm();
+        if (diaryId) {
+            populateEditForm();
+        } else {
+            alert('未指定要编辑的日记！');
+            window.location.href = 'index.html';
+        }
 
         editForm.addEventListener('submit', async (event) => {
             event.preventDefault();
             const title = document.getElementById('diary-title').value;
             const content = document.getElementById('diary-content').value;
-            const privacy_level = document.getElementById('privacy-level').value; // 【修复】读取隐私等级
+            const privacy_level = document.getElementById('privacy-level').value;
             const token = localStorage.getItem('jwtToken');
             if (!title.trim() || !content.trim()) {
                 alert('标题和内容都不能为空！');
@@ -195,7 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({ title, content, privacy_level }) // 【修复】发送隐私等级
+                    body: JSON.stringify({ title, content, privacy_level })
                 });
                 if (response.ok) {
                     alert('日记更新成功！');
@@ -210,7 +289,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    // 如果是“写日记”页面 (write.html)
     else if (diaryForm) {
         const token = localStorage.getItem('jwtToken');
         if (!token) {
@@ -222,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
             event.preventDefault();
             const title = document.getElementById('diary-title').value;
             const content = document.getElementById('diary-content').value;
-            const privacy_level = document.getElementById('privacy-level').value; // 【修复】读取隐私等级
+            const privacy_level = document.getElementById('privacy-level').value;
             if (!title.trim() || !content.trim()) {
                 alert('标题和内容都不能为空哦！');
                 return;
@@ -234,7 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({ title, content, privacy_level }), // 【修复】发送隐私等级
+                    body: JSON.stringify({ title, content, privacy_level }),
                 });
                 if (response.ok) {
                     alert('日记发布成功！');
@@ -249,7 +327,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    // 如果是注册页面 (signup.html)
     else if (signupForm) {
         signupForm.addEventListener('submit', async (event) => {
             event.preventDefault();
@@ -273,14 +350,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    // 如果是登录页面 (login.html)
     else if (loginForm) {
         const authMessage = document.getElementById('auth-message');
         loginForm.addEventListener('submit', async function(event) {
             event.preventDefault();
             if (authMessage) authMessage.textContent = '';
-            const username = loginForm.username.value;
-            const password = loginForm.password.value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
             try {
                 const response = await fetch('/api/login', {
                     method: 'POST',

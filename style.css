@@ -275,3 +275,20 @@ body.dark-theme {
     font-family: 'Ma Shan Zheng', sans-serif; /* 标题仍然使用艺术字体 */
     font-size: 2em;
 }
+
+/* 9. 认证页面样式优化 */
+
+/* 解决字体问题：
+   让认证页面内的所有主要元素都统一使用我们的全局书法字体 */
+.auth-page body,
+.auth-page .form-group label,
+.auth-page input,
+.auth-page button {
+    font-family: 'Ma Shan Zheng', sans-serif;
+}
+
+/* 解决拥挤问题：
+   精确地增大认证表单内部的标签和输入框之间的距离 */
+.auth-form .form-group {
+    gap: 12px; /* 将间距从默认的 8px 增大到 12px */
+}

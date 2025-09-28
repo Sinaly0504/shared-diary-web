@@ -384,11 +384,11 @@ document.addEventListener('DOMContentLoaded', () => {
                                         body: JSON.stringify({
                                             content: content,
                                             diaryId: diaryId,
-                                            // 保存批注时，我们选择一个相对稳定的点作为坐标
-                                            position_x: window.scrollX + rect.left,
-                                            position_y: window.scrollY + rect.top,
-                                            font_family: selectedFont, // 发送字体
-                                            color: selectedColor       // 发送颜色
+                                            // 【重要修改】在发送前对坐标进行四舍五入取整
+                                            position_x: Math.round(window.scrollX + rect.left),
+                                            position_y: Math.round(window.scrollY + rect.top),
+                                            font_family: selectedFont,
+                                            color: selectedColor
                                         })
                                     });
 

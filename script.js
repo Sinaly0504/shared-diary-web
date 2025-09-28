@@ -1,9 +1,3 @@
-// --- 共享日记 脚本文件 v20.0: 修复点赞功能所有 Bug ---
-
-// =================================================================
-// 辅助函数 (Helper Functions)
-// =================================================================
-
 function parseJwt(token) {
   try {
     const base64Url = token.split('.')[1];
@@ -181,8 +175,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateHeaderUI();
 
+    // --- 主题切换功能 ---
     const themeToggleButton = document.getElementById('theme-toggle-button');
-    if (themeToggleButton) { /* ... */ }
+    if (themeToggleButton) {
+        themeToggleButton.addEventListener('click', () => {
+            document.body.classList.toggle('dark-theme');
+        });
+    }
 
     const diaryContainer = document.getElementById('diary-container');
     const myDiariesTitle = document.querySelector('.page-title');

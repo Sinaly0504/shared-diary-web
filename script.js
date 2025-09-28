@@ -128,37 +128,53 @@ document.addEventListener('DOMContentLoaded', () => {
     const signupForm = document.getElementById('signup-form');
     const loginForm = document.getElementById('login-form');
 
+    
     // 1. 如果是“写日记”页面 (write.html)
     if (diaryForm) {
         // --- 页面守卫：检查是否登录 ---
         const token = localStorage.getItem('jwtToken');
         if (!token) {
             alert('请先登录才能写日记哦！');
-            window.location.href = 'login.html'; // 重定向到登录页
-            return; // 阻止后续代码执行
+            window.location.href = 'login.html';
+            return;
         }
 
-        // --- 提交表单逻辑 ---
-        diaryForm.addEventListener('submit', (event) => {
+        // --- 提交表单逻辑 (V2.0 - 连接后端) ---
+        diaryForm.addEventListener('submit', async (event) => {
             event.preventDefault();
+            
             const title = document.getElementById('diary-title').value;
             const content = document.getElementById('diary-content').value;
+
             if (!title.trim() || !content.trim()) {
                 alert('标题和内容都不能为空哦！');
                 return;
             }
-            const newDiary = {
-                id: Date.now(),
-                title: title,
-                content: content,
-                author: "我自己",
-                date: new Date().toLocaleDateString()
-            };
-            const existingDiaries = getDiariesFromStorage() || [];
-            existingDiaries.push(newDiary);
-            saveDiariesToStorage(existingDiaries);
-            alert('发布成功！');
-            window.location.href = 'index.html';
+
+            try {
+                const response = await fetch('/api/diaries/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // 关键：在请求头中附上我们的 token
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ title, content }),
+                });
+
+                if (response.ok) {
+                    // 如果后端返回成功
+                    alert('日记发布成功！');
+                    window.location.href = 'index.html'; // 跳转回主页
+                } else {
+                    // 如果后端返回失败
+                    const errorResult = await response.json();
+                    alert(`发布失败: ${errorResult.message}`);
+                }
+            } catch (error) {
+                console.error('发布日记请求失败:', error);
+                alert('网络错误，发布失败，请稍后再试。');
+            }
         });
     }
     // 2. 如果是主页 (index.html)

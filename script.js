@@ -138,8 +138,7 @@ function renderAnnotations(annotations) {
 
     if (!annotations || annotations.length === 0) return;
     
-    // --- 【新增】防抖函数 ---
-    // 这是一个通用的辅助函数，我们可以把它放在 renderAnnotations 外部，但为了方便现在先放这里
+    // 防抖函数 (保持不变)
     const debounce = (func, delay) => {
         let timeoutId;
         return (...args) => {
@@ -170,7 +169,7 @@ function renderAnnotations(annotations) {
 
         diaryCard.appendChild(bubble);
 
-        // --- 区分“点击”与“拖动”的逻辑 (不变) ---
+        // --- 区分“点击”与“拖动”的逻辑 (保持不变) ---
         let isDragging = false;
         bubble.addEventListener('mousedown', () => { isDragging = false; });
         bubble.addEventListener('mousemove', () => { isDragging = true; });
@@ -182,7 +181,8 @@ function renderAnnotations(annotations) {
             }
         });
 
-        // --- 拖动逻辑 (小修改，使用防抖来保存位置) ---
+        // --- 【重要修改】拖动功能 V2: 兼容触摸事件 ---
+
         const savePosition = debounce(() => {
             const token = localStorage.getItem('jwtToken');
             if (!token) return;
@@ -194,24 +194,54 @@ function renderAnnotations(annotations) {
                     position_y: parseFloat(bubble.style.top)
                 })
             }).catch(err => console.error('请求失败:', err));
-        }, 500); // 拖动停止500ms后保存
+        }, 500);
 
-        bubble.addEventListener('mousedown', (e) => {
+        // 1. 定义一个统一的拖动开始函数
+        const onDragStart = (e) => {
+            // 阻止默认行为（如文字选中或页面滚动）
             e.preventDefault();
-            const startX = e.clientX, startY = e.clientY;
-            const initialLeft = bubble.offsetLeft, initialTop = bubble.offsetTop;
+            isDragging = false; // 重置拖动标记
+
+            // 统一获取坐标的方式
+            const startX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+            const startY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
             
-            const onMouseMove = (moveEvent) => {
-                bubble.style.left = `${initialLeft + (moveEvent.clientX - startX)}px`;
-                bubble.style.top = `${initialTop + (moveEvent.clientY - startY)}px`;
+            const initialLeft = bubble.offsetLeft;
+            const initialTop = bubble.offsetTop;
+
+            // 2. 定义一个统一的拖动移动函数
+            const onDragMove = (moveEvent) => {
+                isDragging = true; // 只要移动了，就标记为拖动
+                const moveX = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientX : moveEvent.clientX;
+                const moveY = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientY : moveEvent.clientY;
+                
+                bubble.style.left = `${initialLeft + (moveX - startX)}px`;
+                bubble.style.top = `${initialTop + (moveY - startY)}px`;
             };
-            const onMouseUp = () => {
-                document.removeEventListener('mousemove', onMouseMove);
-                if (isDragging) savePosition(); // 如果是拖动，调用防抖函数
+
+            // 3. 定义一个统一的拖动结束函数
+            const onDragEnd = () => {
+                // 移除全局事件监听
+                document.removeEventListener('mousemove', onDragMove);
+                document.removeEventListener('mouseup', onDragEnd);
+                document.removeEventListener('touchmove', onDragMove);
+                document.removeEventListener('touchend', onDragEnd);
+                
+                if (isDragging) {
+                    savePosition(); // 如果确实发生了拖动，则保存位置
+                }
             };
-            document.addEventListener('mousemove', onMouseMove);
-            document.addEventListener('mouseup', onMouseUp, { once: true });
-        });
+            
+            // 4. 绑定对应的全局事件
+            document.addEventListener('mousemove', onDragMove);
+            document.addEventListener('mouseup', onDragEnd, { once: true });
+            document.addEventListener('touchmove', onDragMove, { passive: false }); // passive: false 允许 preventDefault
+            document.addEventListener('touchend', onDragEnd, { once: true });
+        };
+        
+        // 5. 为鼠标和触摸分别绑定“开始”事件
+        bubble.addEventListener('mousedown', onDragStart);
+        bubble.addEventListener('touchstart', onDragStart);
 
         // --- 调整字体大小逻辑 (重要修改，使用防抖来保存) ---
         const saveFontSize = debounce(() => {

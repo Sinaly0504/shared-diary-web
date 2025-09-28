@@ -1,4 +1,4 @@
-// /api/annotations/create.js (V3.1 - 更健壮的容错版本)
+// /api/annotations/create.js (V3.3 - 修正 font_size 引用错误)
 
 import { Pool } from 'pg';
 import jwt from 'jsonwebtoken';
@@ -30,35 +30,32 @@ export default async function handler(req, res) {
     }
     const userId = decodedToken.userId;
 
-    // 2. 从请求体中获取所有数据
-    const { content, diaryId, position_x, position_y, font_family, color } = req.body;
+    // 2. 【重要修正】从请求体中解构出 font_size
+    const { content, diaryId, position_x, position_y, font_family, color, font_size } = req.body;
     if (content === undefined || diaryId === undefined || position_x === undefined || position_y === undefined) {
       return res.status(400).json({ message: '批注信息不完整' });
     }
     
-    // --- 【关键修正】在这里提供默认值 ---
-    // 如果前端传来的 font_family 是空的 (undefined, null, ''), 我们就使用数据库的默认字体
+    // 3. 设置默认值 (这部分逻辑现在可以正常工作了)
     const final_font = font_family || 'Zhi Mang Xing'; 
-    // 如果前端传来的 color 是空的，我们就使用数据库的默认颜色
     const final_color = color || '#594524';
     const final_font_size = font_size || 16; 
 
-    // 3. 将新批注插入数据库
+    // 4. 将新批注插入数据库
     const query = `
-      INSERT INTO annotations (content, user_id, diary_id, position_x, position_y, font_family, color)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO annotations (content, user_id, diary_id, position_x, position_y, font_family, color, font_size)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *;
     `;
     
-    // 使用我们处理过的、保证有值的 final_font 和 final_color
     const values = [
         content, 
         userId, 
         diaryId, 
         position_x, 
         position_y, 
-        final_font,  // 使用修正后的变量
-        final_color,  // 使用修正后的变量
+        final_font, 
+        final_color, 
         final_font_size
     ];
     const { rows } = await pool.query(query, values);

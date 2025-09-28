@@ -43,9 +43,9 @@ export default async function handler(req, res) {
 
     // 6. 将新日记插入数据库
     const query = `
-      INSERT INTO diaries (user_id, title, content)
-      VALUES ($1, $2, $3)
-      RETURNING *; 
+        INSERT INTO diaries (author_id, title, content)
+        VALUES ($1, $2, $3)
+        RETURNING *; 
     `;
     const values = [userId, title, content];
     const { rows } = await pool.query(query, values);

@@ -134,7 +134,6 @@ function renderAnnotations(annotations) {
     const diaryCard = document.getElementById('diary-detail-container');
     if (!diaryCard) return;
 
-    // 先移除所有旧的批注，防止重复渲染
     document.querySelectorAll('.annotation-bubble').forEach(bubble => bubble.remove());
 
     if (!annotations || annotations.length === 0) return;
@@ -143,20 +142,85 @@ function renderAnnotations(annotations) {
         const bubble = document.createElement('div');
         bubble.className = 'annotation-bubble';
         
+        // 【新增】给 bubble 元素添加一个 data-* 属性来存储它的 ID
+        bubble.dataset.annotationId = annotation.id;
+        
         bubble.innerHTML = `
             <span class="author" style="display: none;">${annotation.username}:</span>
             <div class="annotation-content">${annotation.content}</div>
         `;
         
-        // 【重要修改】应用从数据库读取的个性化样式
-        bubble.style.fontFamily = annotation.font_family; // 设置字体
-        bubble.style.color = annotation.color;           // 设置颜色
-        
-        // 根据数据库中的坐标设置位置
+        bubble.style.fontFamily = annotation.font_family;
+        bubble.style.color = annotation.color;
         bubble.style.left = `${annotation.position_x}px`;
         bubble.style.top = `${annotation.position_y}px`;
         
         diaryCard.appendChild(bubble);
+
+        // --- 【新增】实现拖动功能的核心逻辑 ---
+
+        // 1. 当鼠标在批注上按下时 (拖动开始)
+        bubble.addEventListener('mousedown', (e) => {
+            // 阻止浏览器的默认文字选中行为，这是最关键的一步！
+            e.preventDefault();
+
+            // 记录当前鼠标的起始位置
+            const startX = e.clientX;
+            const startY = e.clientY;
+            
+            // 记录批注的初始位置 (offsetLeft/Top 是相对于父元素的整数坐标)
+            const initialLeft = bubble.offsetLeft;
+            const initialTop = bubble.offsetTop;
+            
+            // 定义一个函数，用于处理鼠标移动
+            const onMouseMove = (moveEvent) => {
+                // 计算鼠标移动的距离
+                const deltaX = moveEvent.clientX - startX;
+                const deltaY = moveEvent.clientY - startY;
+
+                // 计算批注的新位置
+                bubble.style.left = `${initialLeft + deltaX}px`;
+                bubble.style.top = `${initialTop + deltaY}px`;
+            };
+
+            // 2. 当鼠标松开时 (拖动结束)
+            const onMouseUp = () => {
+                // 移除事件监听，这是非常重要的性能优化！
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+
+                // --- 将新位置保存到后端 ---
+                const token = localStorage.getItem('jwtToken');
+                if (!token) return; // 如果未登录，则不保存
+
+                const newLeft = parseFloat(bubble.style.left);
+                const newTop = parseFloat(bubble.style.top);
+                const annotationId = bubble.dataset.annotationId;
+
+                fetch(`/api/annotations/${annotationId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        position_x: newLeft,
+                        position_y: newTop
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        console.error('更新批注位置失败');
+                    }
+                })
+                .catch(err => console.error('请求失败:', err));
+            };
+
+            // 将 "mousemove" 和 "mouseup" 事件绑定到整个 document 上
+            // 这样即使用户鼠标拖动得很快，移出了批注区域，也能继续响应
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp, { once: true }); // { once: true } 表示这个事件只触发一次就自动移除
+        });
     });
 }
 

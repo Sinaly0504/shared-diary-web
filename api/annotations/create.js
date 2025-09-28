@@ -41,6 +41,7 @@ export default async function handler(req, res) {
     const final_font = font_family || 'Zhi Mang Xing'; 
     // 如果前端传来的 color 是空的，我们就使用数据库的默认颜色
     const final_color = color || '#594524';
+    const final_font_size = font_size || 16; 
 
     // 3. 将新批注插入数据库
     const query = `
@@ -57,7 +58,8 @@ export default async function handler(req, res) {
         position_x, 
         position_y, 
         final_font,  // 使用修正后的变量
-        final_color  // 使用修正后的变量
+        final_color,  // 使用修正后的变量
+        final_font_size
     ];
     const { rows } = await pool.query(query, values);
 

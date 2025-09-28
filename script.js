@@ -144,6 +144,31 @@ async function loadMyDiaries() {
     }
 }
 
+function renderComments(comments) {
+    const commentsList = document.getElementById('comments-list');
+    if (!commentsList) return;
+    
+    if (comments.length === 0) {
+        commentsList.innerHTML = '<p>还没有评论，快来抢占第一个沙发吧！</p>';
+        return;
+    }
+
+    commentsList.innerHTML = ''; // 清空旧评论
+    comments.forEach(comment => {
+        const commentElement = document.createElement('div');
+        commentElement.classList.add('comment');
+        const formattedDate = new Date(comment.created_at).toLocaleString(); // 使用更详细的时间
+        commentElement.innerHTML = `
+            <div class="comment-header">
+                <span class="comment-author">${comment.username}</span>
+                <span class="comment-date">${formattedDate}</span>
+            </div>
+            <p class="comment-content">${comment.content}</p>
+        `;
+        commentsList.appendChild(commentElement);
+    });
+}
+
 // =================================================================
 // 页面判断与事件监听 (整个应用的“大脑”)
 // =================================================================
@@ -207,7 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span class="like-count">${diary.like_count}</span>
                     `;
                 }
-
+                
                 const deleteButton = document.getElementById('delete-button');
                 const editLink = document.getElementById('edit-link');
                 
@@ -246,12 +271,74 @@ document.addEventListener('DOMContentLoaded', () => {
                     deleteButton.style.display = 'none';
                     editLink.style.display = 'none';
                 }
+
+                // Fetch and render comments
+                const commentsResponse = await fetch(`/api/diaries/${diaryId}/comments`);
+                const comments = await commentsResponse.json();
+                renderComments(comments);
+
             } catch (error) {
                 console.error('加载日记详情失败:', error);
                 diaryDetailContainer.innerHTML = '<h1>哦哦，没有找到这篇日记...</h1><a href="index.html" class="nav-button secondary">返回首页</a>';
             }
         }
-        if (diaryId) loadDiaryDetail();
+        
+        const token = localStorage.getItem('jwtToken');
+        const commentForm = document.getElementById('comment-form');
+        const commentLoginPrompt = document.getElementById('comment-login-prompt');
+        if (token) {
+            commentForm.style.display = 'block';
+            commentLoginPrompt.style.display = 'none';
+        } else {
+            commentForm.style.display = 'none';
+            commentLoginPrompt.style.display = 'block';
+        }
+
+        if (diaryId) {
+            loadDiaryDetail();
+            commentForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const contentElement = document.getElementById('comment-content');
+                const content = contentElement.value.trim();
+                if (!content) {
+                    alert('评论内容不能为空！');
+                    return;
+                }
+                try {
+                    const response = await fetch(`/api/diaries/${diaryId}/comments`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ content })
+                    });
+                    if (!response.ok) throw new Error('评论失败');
+                    const result = await response.json();
+                    
+                    const commentsList = document.getElementById('comments-list');
+                    if (commentsList.querySelector('p')) {
+                        commentsList.innerHTML = '';
+                    }
+                    
+                    const newCommentElement = document.createElement('div');
+                    newCommentElement.classList.add('comment');
+                    const formattedDate = new Date(result.comment.created_at).toLocaleString();
+                    newCommentElement.innerHTML = `
+                        <div class="comment-header">
+                            <span class="comment-author">${result.comment.username}</span>
+                            <span class="comment-date">${formattedDate}</span>
+                        </div>
+                        <p class="comment-content">${result.comment.content}</p>
+                    `;
+                    commentsList.appendChild(newCommentElement);
+                    contentElement.value = '';
+                } catch (error) {
+                    console.error('评论提交失败:', error);
+                    alert('评论失败，请稍后重试。');
+                }
+            });
+        }
     }
     else if (editForm) {
         const params = new URLSearchParams(window.location.search);

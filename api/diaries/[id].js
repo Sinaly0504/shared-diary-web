@@ -67,7 +67,6 @@ export default async function handler(req, res) {
   // --- 【新增】处理 PUT (更新) 请求 ---
   } else if (req.method === 'PUT') {
     try {
-      // 1. 同样，先验证用户身份
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ message: '未授权的访问' });
@@ -81,22 +80,22 @@ export default async function handler(req, res) {
       }
       const currentUserId = decodedToken.userId;
 
-      // 2. 从请求体中获取新的标题和内容
-      const { title, content } = req.body;
-      if (!title || !content) {
-        return res.status(400).json({ message: '标题和内容不能为空' });
+      // 【修改】从请求体中同时获取 title, content 和 privacy_level
+      const { title, content, privacy_level } = req.body;
+      if (!title || !content || !privacy_level) {
+        return res.status(400).json({ message: '标题、内容和隐私等级不能为空' });
       }
 
-      // 3. 执行更新操作 (同样有严格的权限校验)
+      // 【修改】更新时同时更新 privacy_level
       const query = `
         UPDATE diaries
-        SET title = $1, content = $2
-        WHERE id = $3 AND author_id = $4
+        SET title = $1, content = $2, privacy_level = $3
+        WHERE id = $4 AND author_id = $5
         RETURNING *;
       `;
-      const { rows } = await pool.query(query, [title, content, id, currentUserId]);
+      const values = [title, content, privacy_level, id, currentUserId];
+      const { rows } = await pool.query(query, values);
 
-      // 4. 检查更新是否成功
       if (rows.length > 0) {
         res.status(200).json({ message: '日记更新成功', diary: rows[0] });
       } else {
@@ -106,8 +105,7 @@ export default async function handler(req, res) {
       console.error('更新日记时出错:', error);
       res.status(500).json({ message: '服务器内部错误' });
     }
-
-  } else {
+  }  else {
     res.status(405).json({ message: 'Method Not Allowed' });
   }
 }

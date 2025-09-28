@@ -1,4 +1,4 @@
-// /api/diaries/list.js
+// /api/diaries/list.js (V2.0 - 带隐私筛选)
 
 import { Pool } from 'pg';
 
@@ -10,13 +10,12 @@ const pool = new Pool({
 });
 
 export default async function handler(req, res) {
-  // 我们只接受 GET 请求来获取列表
   if (req.method !== 'GET') {
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
   try {
-    // 这是一条带有 JOIN 的 SQL 查询语句
+    // 【关键修改】在 SQL 查询中增加了 WHERE 条件
     const query = `
       SELECT
         diaries.id,
@@ -26,12 +25,12 @@ export default async function handler(req, res) {
         users.username
       FROM diaries
       INNER JOIN users ON diaries.author_id = users.id
+      WHERE diaries.privacy_level = 'public'  -- 只选择公开的日记
       ORDER BY diaries.created_at DESC;
     `;
 
     const { rows } = await pool.query(query);
 
-    // 返回查询到的日记列表
     res.status(200).json(rows);
 
   } catch (error) {

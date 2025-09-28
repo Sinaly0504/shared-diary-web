@@ -1,4 +1,4 @@
-// --- 共享日记 脚本文件 v13.0: 实现修改功能 (前端部分) ---
+// --- 共享日记 脚本文件 v14.0: 完成修改功能 (CRUD闭环) ---
 
 // =================================================================
 // 辅助函数 (Helper Functions)
@@ -198,12 +198,44 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.location.href = 'index.html';
             }
         }
+
         if (diaryId) {
             populateEditForm();
         } else {
             alert('未指定要编辑的日记！');
             window.location.href = 'index.html';
         }
+
+        editForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const title = document.getElementById('diary-title').value;
+            const content = document.getElementById('diary-content').value;
+            const token = localStorage.getItem('jwtToken');
+            if (!title.trim() || !content.trim()) {
+                alert('标题和内容都不能为空！');
+                return;
+            }
+            try {
+                const response = await fetch(`/api/diaries/${diaryId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ title, content })
+                });
+                if (response.ok) {
+                    alert('日记更新成功！');
+                    window.location.href = `detail.html?id=${diaryId}`;
+                } else {
+                    const errorResult = await response.json();
+                    alert(`更新失败: ${errorResult.message}`);
+                }
+            } catch (error) {
+                console.error('更新请求失败:', error);
+                alert('更新失败，请检查网络连接。');
+            }
+        });
     }
     // 如果是“写日记”页面 (write.html)
     else if (diaryForm) {
@@ -267,7 +299,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    
     // 如果是登录页面 (login.html)
     else if (loginForm) {
         const authMessage = document.getElementById('auth-message');

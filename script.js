@@ -301,6 +301,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     else if (diaryDetailContainer) {
+        // --- 【新增】显示/隐藏批注功能 ---
+        const toggleCheckbox = document.getElementById('toggle-annotations-checkbox');
+        if (toggleCheckbox) {
+            toggleCheckbox.addEventListener('change', () => {
+                const diaryCard = document.getElementById('diary-detail-container');
+                if (!diaryCard) return;
+
+                if (toggleCheckbox.checked) {
+                    // 如果开关是开启的，移除隐藏类
+                    diaryCard.classList.remove('annotations-hidden');
+                } else {
+                    // 如果开关是关闭的，添加隐藏类
+                    diaryCard.classList.add('annotations-hidden');
+                }
+            });
+        }
         const params = new URLSearchParams(window.location.search);
         const diaryId = params.get('id');
         // --- 【新增】段评功能：选中文字并显示批注按钮 ---

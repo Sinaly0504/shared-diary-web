@@ -232,6 +232,48 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    // 【新增】如果是编辑页面 (edit.html)
+    else if (editForm) {
+        const params = new URLSearchParams(window.location.search);
+        const diaryId = params.get('id');
+
+        // 设置“取消”按钮的返回链接
+        const cancelLink = document.getElementById('cancel-edit-link');
+        if (cancelLink) cancelLink.href = `detail.html?id=${diaryId}`;
+
+        // 定义一个函数，用于加载日记数据并填充表单
+        async function populateEditForm() {
+            try {
+                const response = await fetch(`/api/diaries/${diaryId}`);
+                if (!response.ok) throw new Error('无法加载日记内容');
+                const diary = await response.json();
+
+                // 权限验证：再次确认当前用户是作者
+                const token = localStorage.getItem('jwtToken');
+                if (!token || parseJwt(token).username !== diary.username) {
+                    alert('无权编辑此日记！');
+                    window.location.href = `detail.html?id=${diaryId}`;
+                    return;
+                }
+
+                // 将获取到的数据填充到表单中
+                document.getElementById('diary-title').value = diary.title;
+                document.getElementById('diary-content').value = diary.content;
+
+            } catch (error) {
+                console.error('填充编辑表单失败:', error);
+                alert('加载日记内容失败，请重试。');
+                window.location.href = 'index.html';
+            }
+        }
+
+        if (diaryId) {
+            populateEditForm();
+        } else {
+            alert('未指定要编辑的日记！');
+            window.location.href = 'index.html';
+        }
+    }
     // 如果是登录页面 (login.html)
     else if (loginForm) {
         const authMessage = document.getElementById('auth-message');

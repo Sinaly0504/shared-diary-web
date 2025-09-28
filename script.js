@@ -1,4 +1,4 @@
-// --- 共享日记 脚本文件 v15.0: 修复隐私设置提交功能 ---
+// --- 共享日记 脚本文件 v17.0: 实现“我的日记”功能 ---
 
 // =================================================================
 // 辅助函数 (Helper Functions)
@@ -17,7 +17,6 @@ function parseJwt(token) {
   }
 }
 
-// --- 【修改】更新头部UI，增加“我的日记”链接 ---
 function updateHeaderUI() {
   const authLinksContainer = document.querySelector('.user-auth-links');
   const writeDiaryBtn = document.getElementById('write-diary-btn');
@@ -26,7 +25,6 @@ function updateHeaderUI() {
     const decodedToken = parseJwt(token);
     if (decodedToken && decodedToken.username) {
       const username = decodedToken.username;
-      // 在这里添加了 “我的日记” 链接
       authLinksContainer.innerHTML = `
         <a href="mydiaries.html" class="nav-link">我的日记</a>
         <span class="welcome-message">欢迎, ${username}</span>
@@ -86,6 +84,33 @@ async function loadHomepage() {
     }
 }
 
+async function loadMyDiaries() {
+    const diaryContainer = document.getElementById('diary-container');
+    const token = localStorage.getItem('jwtToken');
+    if (!token) {
+        alert('请先登录才能查看“我的日记”！');
+        window.location.href = 'login.html';
+        return;
+    }
+    try {
+        const response = await fetch('/api/diaries/mine', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) {
+            throw new Error('获取“我的日记”失败');
+        }
+        const diaries = await response.json();
+        if (diaries.length === 0) {
+            diaryContainer.innerHTML = '<p>你还没有发布任何日记，快去写一篇吧！</p>';
+        } else {
+            renderDiaries(diaries);
+        }
+    } catch (error) {
+        console.error("加载“我的日记”失败:", error);
+        if (diaryContainer) diaryContainer.innerHTML = '<p>加载日记失败，请稍后刷新重试。</p>';
+    }
+}
+
 // =================================================================
 // 页面判断与事件监听 (整个应用的“大脑”)
 // =================================================================
@@ -101,77 +126,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const diaryForm = document.querySelector('.diary-form');
     const diaryContainer = document.getElementById('diary-container');
+    const myDiariesTitle = document.querySelector('.page-title'); // 用来识别“我的日记”页
     const diaryDetailContainer = document.getElementById('diary-detail-container');
+    const diaryForm = document.querySelector('.diary-form');
+    const editForm = document.getElementById('edit-form');
     const signupForm = document.getElementById('signup-form');
     const loginForm = document.getElementById('login-form');
-    const editForm = document.getElementById('edit-form');
 
-    // 如果是主页 (index.html)
     if (diaryContainer) {
-        loadHomepage();
+        if (myDiariesTitle) {
+            loadMyDiaries();
+        } else {
+            loadHomepage();
+        }
     }
-    // 如果是详情页 (detail.html)
     else if (diaryDetailContainer) {
         const params = new URLSearchParams(window.location.search);
         const diaryId = params.get('id');
-        
-        async function loadDiaryDetail() {
-            try {
-                const response = await fetch(`/api/diaries/${diaryId}`);
-                if (!response.ok) throw new Error('日记未找到');
-                const diary = await response.json();
-                
-                document.getElementById('detail-title').textContent = diary.title;
-                document.getElementById('detail-content').textContent = diary.content;
-                const formattedDate = new Date(diary.created_at).toLocaleDateString();
-                document.getElementById('detail-meta').innerHTML = `<span class="author">By: ${diary.username}</span><span class="date">${formattedDate}</span>`;
-                
-                const deleteButton = document.getElementById('delete-button');
-                const editLink = document.getElementById('edit-link');
-                const token = localStorage.getItem('jwtToken');
-
-                if (token) {
-                    const currentUser = parseJwt(token);
-                    if (currentUser.username === diary.username) {
-                        deleteButton.style.display = 'inline-block';
-                        editLink.style.display = 'inline-block';
-                        editLink.href = `edit.html?id=${diaryId}`;
-
-                        deleteButton.addEventListener('click', async () => {
-                            if (confirm('你确定要删除这篇日记吗？此操作无法撤销。')) {
-                                try {
-                                    const deleteResponse = await fetch(`/api/diaries/${diaryId}`, {
-                                        method: 'DELETE',
-                                        headers: { 'Authorization': `Bearer ${token}` }
-                                    });
-                                    if (deleteResponse.ok) {
-                                        alert('删除成功！');
-                                        window.location.href = 'index.html';
-                                    } else {
-                                        const errorResult = await deleteResponse.json();
-                                        alert(`删除失败: ${errorResult.message}`);
-                                    }
-                                } catch (error) {
-                                    console.error('删除请求失败:', error);
-                                    alert('删除失败，请检查网络连接。');
-                                }
-                            }
-                        });
-                    } else {
-                        deleteButton.style.display = 'none';
-                        editLink.style.display = 'none';
-                    }
-                } else {
-                    deleteButton.style.display = 'none';
-                    editLink.style.display = 'none';
-                }
-            } catch (error) {
-                console.error('加载日记详情失败:', error);
-                diaryDetailContainer.innerHTML = '<h1>哦哦，没有找到这篇日记...</h1><a href="index.html" class="nav-button secondary">返回首页</a>';
-            }
-        }
+        async function loadDiaryDetail() { /* ... */ }
         if (diaryId) loadDiaryDetail();
     }
     // 如果是编辑页面 (edit.html)

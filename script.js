@@ -112,6 +112,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const diaryDetailContainer = document.getElementById('diary-detail-container');
     const signupForm = document.getElementById('signup-form');
     const loginForm = document.getElementById('login-form');
+    // --- 【修复】主题切换功能 (所有页面通用) ---
+    const themeToggleButton = document.getElementById('theme-toggle-button');
+    if (themeToggleButton) {
+        themeToggleButton.addEventListener('click', () => {
+            document.body.classList.toggle('dark-theme');
+        });
+    }
 
     // 如果是主页 (index.html)
     if (diaryContainer) {

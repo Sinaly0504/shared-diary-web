@@ -403,3 +403,45 @@ body.dark-theme {
 .user-menu-dropdown.is-open {
     display: block;
 }
+
+/* --- 点赞功能样式 --- */
+
+/* 点赞容器的布局 */
+.card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* 按钮和文字之间的间距 */
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border-color);
+}
+
+/* 点赞按钮本身 */
+.like-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    font-size: 1.5em; /* 调整心形的大小 */
+    color: var(--font-color-secondary);
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+
+/* 按钮悬浮或被点击时的微小放大效果 */
+.like-button:hover,
+.like-button:active {
+    transform: scale(1.2);
+}
+
+/* 已点赞状态下的样式 (红心) */
+.like-button.liked {
+    color: #e74c3c; /* 一个漂亮的红色 */
+}
+
+/* 点赞计数的文字样式 */
+.like-count {
+    font-size: 1em;
+    font-weight: bold;
+    color: var(--font-color-secondary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}

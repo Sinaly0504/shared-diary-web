@@ -1,4 +1,4 @@
-// /api/diaries/[id].js (最终版 - 支持 GET, DELETE, PUT)
+// /api/diaries/[id].js (V2.0 - 附带点赞信息)
 
 import { Pool } from 'pg';
 import jwt from 'jsonwebtoken';
@@ -11,18 +11,36 @@ const pool = new Pool({
 });
 
 export default async function handler(req, res) {
-  const { id } = req.query;
+  const { id: diaryId } = req.query;
 
-  // --- 处理 GET 请求 (保持不变) ---
   if (req.method === 'GET') {
     try {
+      let userId = null;
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.split(' ')[1];
+        try {
+          const decoded = jwt.verify(token, process.env.JWT_SECRET);
+          userId = decoded.userId;
+        } catch (e) {
+          console.log("Invalid token, proceeding as guest.");
+        }
+      }
+
       const query = `
-        SELECT diaries.id, diaries.title, diaries.content, diaries.created_at, users.username
-        FROM diaries
-        INNER JOIN users ON diaries.author_id = users.id
-        WHERE diaries.id = $1;
+        SELECT
+          d.id, d.title, d.content, d.created_at, u.username,
+          (SELECT COUNT(*)::int FROM likes WHERE diary_id = d.id) AS like_count,
+          CASE WHEN $2::UUID IS NOT NULL AND EXISTS (
+            SELECT 1 FROM likes WHERE diary_id = d.id AND user_id = $2
+          ) THEN TRUE ELSE FALSE END AS user_has_liked
+        FROM diaries d
+        INNER JOIN users u ON d.author_id = u.id
+        WHERE d.id = $1;
       `;
-      const { rows } = await pool.query(query, [id]);
+      
+      const { rows } = await pool.query(query, [diaryId, userId]);
+
       if (rows.length > 0) {
         res.status(200).json(rows[0]);
       } else {
@@ -32,9 +50,8 @@ export default async function handler(req, res) {
       console.error('获取单篇日记时出错:', error);
       res.status(500).json({ message: '服务器内部错误' });
     }
-
-  // --- 处理 DELETE 请求 (保持不变) ---
-  } else if (req.method === 'DELETE') {
+  } 
+  else if (req.method === 'DELETE') {
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -53,7 +70,7 @@ export default async function handler(req, res) {
         WHERE id = $1 AND author_id = $2
         RETURNING *;
       `;
-      const { rows } = await pool.query(query, [id, currentUserId]);
+      const { rows } = await pool.query(query, [diaryId, currentUserId]);
       if (rows.length > 0) {
         res.status(200).json({ message: '日记删除成功' });
       } else {
@@ -63,9 +80,8 @@ export default async function handler(req, res) {
       console.error('删除日记时出错:', error);
       res.status(500).json({ message: '服务器内部错误' });
     }
-
-  // --- 【新增】处理 PUT (更新) 请求 ---
-  } else if (req.method === 'PUT') {
+  }
+  else if (req.method === 'PUT') {
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -79,23 +95,18 @@ export default async function handler(req, res) {
         return res.status(401).json({ message: '无效的 token' });
       }
       const currentUserId = decodedToken.userId;
-
-      // 【修改】从请求体中同时获取 title, content 和 privacy_level
       const { title, content, privacy_level } = req.body;
       if (!title || !content || !privacy_level) {
         return res.status(400).json({ message: '标题、内容和隐私等级不能为空' });
       }
-
-      // 【修改】更新时同时更新 privacy_level
       const query = `
         UPDATE diaries
         SET title = $1, content = $2, privacy_level = $3
         WHERE id = $4 AND author_id = $5
         RETURNING *;
       `;
-      const values = [title, content, privacy_level, id, currentUserId];
+      const values = [title, content, privacy_level, diaryId, currentUserId];
       const { rows } = await pool.query(query, values);
-
       if (rows.length > 0) {
         res.status(200).json({ message: '日记更新成功', diary: rows[0] });
       } else {
@@ -105,7 +116,8 @@ export default async function handler(req, res) {
       console.error('更新日记时出错:', error);
       res.status(500).json({ message: '服务器内部错误' });
     }
-  }  else {
+  }
+  else {
     res.status(405).json({ message: 'Method Not Allowed' });
   }
 }

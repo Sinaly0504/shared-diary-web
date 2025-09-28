@@ -1,4 +1,4 @@
-// --- 共享日记 脚本文件 v18.0: 升级为用户下拉菜单 ---
+// --- 共享日记 脚本文件 v19.0: 实现点赞功能 ---
 
 // =================================================================
 // 辅助函数 (Helper Functions)
@@ -77,24 +77,38 @@ function renderDiaries(diaries) {
     diaries.forEach(entry => {
         const card = document.createElement('div');
         card.classList.add('diary-card');
-        const formattedDate = new Date(entry.created_at).toLocaleDateString();
+        
+        const likeButtonClass = entry.user_has_liked ? 'like-button liked' : 'like-button';
+        const heartIcon = entry.user_has_liked ? '♥' : '♡';
+
         card.innerHTML = `
             <a href="detail.html?id=${entry.id}" class="card-link">
-                <h2 class="card-title">${entry.title}</h2>
-                <p class="card-content">${entry.content.substring(0, 100)}...</p>
-                <div class="card-footer">
-                    <span class="author">By: ${entry.username}</span>
-                    <span class="date">${formattedDate}</span>
+                <div class="card-header">
+                    <h2 class="card-title">${entry.title}</h2>
+                    <p class="card-content">${entry.content.substring(0, 100)}...</p>
                 </div>
             </a>
+            <div class="card-footer">
+                <span class="author">By: ${entry.username}</span>
+                <span class="date">${new Date(entry.created_at).toLocaleDateString()}</span>
+            </div>
+            <div class="card-actions">
+                <button class="${likeButtonClass}" data-diary-id="${entry.id}" data-liked="${entry.user_has_liked}">
+                    ${heartIcon}
+                </button>
+                <span class="like-count">${entry.like_count}</span>
+            </div>
         `;
         diaryContainer.appendChild(card);
     });
 }
 
 async function loadHomepage() {
+    const token = localStorage.getItem('jwtToken');
     try {
-        const response = await fetch('/api/diaries/list');
+        const response = await fetch('/api/diaries/list', {
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
         if (!response.ok) throw new Error('获取日记失败');
         const diaries = await response.json();
         renderDiaries(diaries);
@@ -167,8 +181,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const diaryId = params.get('id');
         
         async function loadDiaryDetail() {
+            const token = localStorage.getItem('jwtToken');
             try {
-                const response = await fetch(`/api/diaries/${diaryId}`);
+                const response = await fetch(`/api/diaries/${diaryId}`, {
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                });
                 if (!response.ok) throw new Error('日记未找到');
                 const diary = await response.json();
                 
@@ -179,8 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const deleteButton = document.getElementById('delete-button');
                 const editLink = document.getElementById('edit-link');
-                const token = localStorage.getItem('jwtToken');
-
+                
                 if (token) {
                     const currentUser = parseJwt(token);
                     if (currentUser.username === diary.username) {
@@ -382,4 +398,52 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // 全局点赞点击事件监听器
+    document.body.addEventListener('click', async (event) => {
+        const likeButton = event.target.closest('.like-button');
+        if (!likeButton) return;
+
+        event.preventDefault();
+        
+        const token = localStorage.getItem('jwtToken');
+        if (!token) {
+            alert('请先登录才能点赞哦！');
+            window.location.href = 'login.html';
+            return;
+        }
+
+        const diaryId = likeButton.dataset.diaryId;
+        const isLiked = likeButton.dataset.liked === 'true';
+        const likeCountSpan = likeButton.nextElementSibling;
+        const initialLikeCount = parseInt(likeCountSpan.textContent);
+
+        // 1. 乐观更新 UI
+        const newLikedState = !isLiked;
+        likeButton.dataset.liked = newLikedState;
+        likeButton.classList.toggle('liked');
+        likeButton.innerHTML = newLikedState ? '♥' : '♡';
+        likeCountSpan.textContent = newLikedState ? initialLikeCount + 1 : initialLikeCount - 1;
+
+        try {
+            const method = newLikedState ? 'POST' : 'DELETE';
+            const response = await fetch(`/api/diaries/${diaryId}/like`, {
+                method: method,
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!response.ok) {
+                throw new Error('操作失败');
+            }
+
+        } catch (error) {
+            console.error("点赞/取消点赞失败:", error);
+            // 2. 如果请求失败，则回滚 UI
+            likeButton.dataset.liked = isLiked;
+            likeButton.classList.toggle('liked');
+            likeButton.innerHTML = isLiked ? '♥' : '♡';
+            likeCountSpan.textContent = initialLikeCount;
+            alert('操作失败，请稍后重试。');
+        }
+    });
 });

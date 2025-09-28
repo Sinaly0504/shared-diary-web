@@ -137,11 +137,22 @@ function renderAnnotations(annotations) {
     document.querySelectorAll('.annotation-bubble').forEach(bubble => bubble.remove());
 
     if (!annotations || annotations.length === 0) return;
+    
+    // --- 【新增】防抖函数 ---
+    // 这是一个通用的辅助函数，我们可以把它放在 renderAnnotations 外部，但为了方便现在先放这里
+    const debounce = (func, delay) => {
+        let timeoutId;
+        return (...args) => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                func.apply(this, args);
+            }, delay);
+        };
+    };
 
     annotations.forEach(annotation => {
         const bubble = document.createElement('div');
         bubble.className = 'annotation-bubble';
-        
         bubble.dataset.annotationId = annotation.id;
         
         bubble.innerHTML = `
@@ -154,14 +165,12 @@ function renderAnnotations(annotations) {
         bubble.style.left = `${annotation.position_x}px`;
         bubble.style.top = `${annotation.position_y}px`;
         
-        // 【新增】从数据库读取或设置一个默认字体大小
-        // 我们假设数据库未来会有一个 font_size 字段，现在先用一个临时方案
-        let currentFontSize = parseFloat(annotation.font_size) || 16; // 默认16px
+        let currentFontSize = parseFloat(annotation.font_size) || 16;
         bubble.style.fontSize = `${currentFontSize}px`;
 
         diaryCard.appendChild(bubble);
 
-        // --- 区分“点击”与“拖动”的逻辑 ---
+        // --- 区分“点击”与“拖动”的逻辑 (不变) ---
         let isDragging = false;
         bubble.addEventListener('mousedown', () => { isDragging = false; });
         bubble.addEventListener('mousemove', () => { isDragging = true; });
@@ -173,7 +182,20 @@ function renderAnnotations(annotations) {
             }
         });
 
-        // --- 实现拖动功能的逻辑 ---
+        // --- 拖动逻辑 (小修改，使用防抖来保存位置) ---
+        const savePosition = debounce(() => {
+            const token = localStorage.getItem('jwtToken');
+            if (!token) return;
+            fetch(`/api/annotations/${bubble.dataset.annotationId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({
+                    position_x: parseFloat(bubble.style.left),
+                    position_y: parseFloat(bubble.style.top)
+                })
+            }).catch(err => console.error('请求失败:', err));
+        }, 500); // 拖动停止500ms后保存
+
         bubble.addEventListener('mousedown', (e) => {
             e.preventDefault();
             const startX = e.clientX, startY = e.clientY;
@@ -185,42 +207,42 @@ function renderAnnotations(annotations) {
             };
             const onMouseUp = () => {
                 document.removeEventListener('mousemove', onMouseMove);
-                if (!isDragging) return;
-                const token = localStorage.getItem('jwtToken');
-                if (!token) return;
-                fetch(`/api/annotations/${bubble.dataset.annotationId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({
-                        position_x: parseFloat(bubble.style.left),
-                        position_y: parseFloat(bubble.style.top)
-                    })
-                }).catch(err => console.error('请求失败:', err));
+                if (isDragging) savePosition(); // 如果是拖动，调用防抖函数
             };
             document.addEventListener('mousemove', onMouseMove);
             document.addEventListener('mouseup', onMouseUp, { once: true });
         });
 
-        // --- 【新增】调整字体大小的逻辑 ---
-        bubble.addEventListener('wheel', (event) => {
-            // 检查是否按下了 Ctrl 键 (或 Mac 的 Cmd 键)
-            if (event.ctrlKey || event.metaKey) {
-                // 阻止页面的默认缩放行为
-                event.preventDefault();
-                
-                // 根据滚轮方向调整字体大小
-                const scrollDirection = Math.sign(event.deltaY); // -1 是向上滚, 1 是向下滚
-                currentFontSize -= scrollDirection; // 向上滚增大，向下滚减小
+        // --- 调整字体大小逻辑 (重要修改，使用防抖来保存) ---
+        const saveFontSize = debounce(() => {
+            const token = localStorage.getItem('jwtToken');
+            if (!token) return;
+            fetch(`/api/annotations/${bubble.dataset.annotationId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ font_size: currentFontSize }) // 只发送 font_size
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.annotation) {
+                    // 更新一下，确保和服务端同步
+                    currentFontSize = parseFloat(data.annotation.font_size);
+                    bubble.style.fontSize = `${currentFontSize}px`;
+                }
+            })
+            .catch(err => console.error('请求失败:', err));
+        }, 500); // 停止滚动500ms后保存
 
-                // 限制字体大小范围，避免过大或过小
+        bubble.addEventListener('wheel', (event) => {
+            if (event.ctrlKey || event.metaKey) {
+                event.preventDefault();
+                const scrollDirection = Math.sign(event.deltaY);
+                currentFontSize -= scrollDirection * 0.5; // 每次调整0.5px，更精细
                 if (currentFontSize < 10) currentFontSize = 10;
                 if (currentFontSize > 48) currentFontSize = 48;
-                
-                // 应用新的字体大小
                 bubble.style.fontSize = `${currentFontSize}px`;
-
-                // 在这里，我们暂时不把字体大小保存到后端
-                // 等我们之后为数据库添加 font_size 字段后，可以轻松地在这里加上 fetch 请求
+                
+                saveFontSize(); // 调用防抖函数
             }
         });
     });

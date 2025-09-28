@@ -24,8 +24,9 @@ export default async function handler(req, res) {
         a.content,
         a.position_x,
         a.position_y,
-        a.font_family,
+        a.font_family, 
         a.color,
+        a.font_size,
         a.created_at,
         u.username
       FROM annotations a

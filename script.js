@@ -1,4 +1,4 @@
-// --- 共享日记 脚本文件 v14.0: 完成修改功能 (CRUD闭环) ---
+// --- 共享日记 脚本文件 v15.0: 修复隐私设置提交功能 ---
 
 // =================================================================
 // 辅助函数 (Helper Functions)
@@ -192,24 +192,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 document.getElementById('diary-title').value = diary.title;
                 document.getElementById('diary-content').value = diary.content;
+                // 在填充表单时，也设置隐私等级的默认值
+                document.getElementById('privacy-level').value = diary.privacy_level;
             } catch (error) {
                 console.error('填充编辑表单失败:', error);
                 alert('加载日记内容失败，请重试。');
                 window.location.href = 'index.html';
             }
         }
-
-        if (diaryId) {
-            populateEditForm();
-        } else {
-            alert('未指定要编辑的日记！');
-            window.location.href = 'index.html';
-        }
+        if (diaryId) populateEditForm();
 
         editForm.addEventListener('submit', async (event) => {
             event.preventDefault();
             const title = document.getElementById('diary-title').value;
             const content = document.getElementById('diary-content').value;
+            const privacy_level = document.getElementById('privacy-level').value; // 【修复】读取隐私等级
             const token = localStorage.getItem('jwtToken');
             if (!title.trim() || !content.trim()) {
                 alert('标题和内容都不能为空！');
@@ -222,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({ title, content })
+                    body: JSON.stringify({ title, content, privacy_level }) // 【修复】发送隐私等级
                 });
                 if (response.ok) {
                     alert('日记更新成功！');
@@ -249,6 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
             event.preventDefault();
             const title = document.getElementById('diary-title').value;
             const content = document.getElementById('diary-content').value;
+            const privacy_level = document.getElementById('privacy-level').value; // 【修复】读取隐私等级
             if (!title.trim() || !content.trim()) {
                 alert('标题和内容都不能为空哦！');
                 return;
@@ -260,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({ title, content }),
+                    body: JSON.stringify({ title, content, privacy_level }), // 【修复】发送隐私等级
                 });
                 if (response.ok) {
                     alert('日记发布成功！');

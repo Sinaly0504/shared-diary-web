@@ -445,3 +445,73 @@ body.dark-theme {
     color: var(--font-color-secondary);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
+
+/* --- 评论区美化样式 --- */
+
+/* 整个评论区容器 */
+.comments-section {
+    margin-top: 40px; /* 和上方的按钮拉开距离 */
+    border-top: 1px solid var(--border-color); /* 添加一条顶部分割线 */
+    padding-top: 20px;
+}
+
+.comments-section h2 {
+    margin-bottom: 20px; /* 标题和列表之间的距离 */
+}
+
+/* 每一条单独的评论 */
+.comment {
+    padding: 15px 0;
+    border-bottom: 1px solid var(--border-color); /* 每条评论下方也加分割线 */
+}
+
+/* 评论的头部（作者和日期）*/
+.comment-header {
+    display: flex;
+    justify-content: space-between; /* 让作者在左，日期在右 */
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 0.9em;
+    color: var(--font-color-secondary);
+}
+
+.comment-author {
+    font-weight: bold; /* 作者名加粗 */
+}
+
+/* 评论的内容，使用更易读的非书法字体 */
+.comment-content {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+}
+
+/* 评论表单 */
+.comment-form {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column; /* 让输入框和按钮垂直排列 */
+    gap: 10px;
+}
+
+.comment-form textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    resize: vertical; /* 允许用户垂直拖动调整输入框大小 */
+    font-size: 1em;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* 让“发表评论”按钮靠右对齐 */
+.comment-form button {
+    align-self: flex-end; 
+}
+
+/* 未登录时的提示信息 */
+#comment-login-prompt {
+    margin-top: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--font-color-secondary);
+}

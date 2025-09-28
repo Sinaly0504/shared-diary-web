@@ -699,3 +699,39 @@ input:checked + .slider:before {
 .diary-detail-card.annotations-hidden .annotation-bubble {
     display: none;
 }
+
+/* --- 段评翻页功能样式 --- */
+.annotation-bubble .annotation-content {
+    margin-bottom: 5px;
+}
+
+/* 翻页导航条的容器 */
+.annotation-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #eee;
+    padding-top: 5px;
+    margin-top: 8px;
+}
+
+/* 翻页按钮 */
+.annotation-nav button {
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    cursor: pointer;
+    color: #a1885c;
+    padding: 0 5px;
+}
+
+.annotation-nav button:hover {
+    color: var(--accent-color);
+}
+
+/* 页码指示器 */
+.annotation-nav .pager {
+    font-size: 0.8em;
+    font-family: sans-serif;
+    color: #a1885c;
+}

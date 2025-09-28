@@ -135,53 +135,64 @@ function renderAnnotations(annotations) {
     if (!diaryCard) return;
 
     document.querySelectorAll('.annotation-bubble').forEach(bubble => bubble.remove());
-
     if (!annotations || annotations.length === 0) return;
 
-    const paragraphOffsets = {};
+    // 1. 先将批注按段落ID进行分组
+    const groupedAnnotations = annotations.reduce((acc, anno) => {
+        const key = anno.anchor_paragraph_id;
+        if (!acc[key]) {
+            acc[key] = [];
+        }
+        acc[key].push(anno);
+        return acc;
+    }, {});
 
-    annotations.forEach(annotation => {
-        const anchorParagraph = document.getElementById(annotation.anchor_paragraph_id);
+    // 2. 遍历每个分组，为每个段落创建一个批注框
+    for (const paragraphId in groupedAnnotations) {
+        const group = groupedAnnotations[paragraphId];
+        const anchorParagraph = document.getElementById(paragraphId);
         
         if (anchorParagraph) {
-            const paragraphId = annotation.anchor_paragraph_id;
-            
-            if (!paragraphOffsets[paragraphId]) {
-                paragraphOffsets[paragraphId] = 0;
-            }
-
             const bubble = document.createElement('div');
             bubble.className = 'annotation-bubble';
-            
-            bubble.innerHTML = `
-                <span class="author">${annotation.username}:</span>
-                ${annotation.content}
-            `;
+            // 添加 data 属性来追踪当前页码
+            bubble.dataset.currentPage = '0'; 
 
+            // 3. 在批注框内部创建所有批注内容，但默认只显示第一个
+            let contentHTML = '';
+            group.forEach((annotation, index) => {
+                const displayStyle = index === 0 ? 'block' : 'none';
+                contentHTML += `
+                    <div class="annotation-content" style="display: ${displayStyle};">
+                        <span class="author">${annotation.username}:</span>
+                        ${annotation.content}
+                    </div>
+                `;
+            });
+
+            // 4. 如果有多条批注，则添加翻页导航
+            let navHTML = '';
+            if (group.length > 1) {
+                navHTML = `
+                    <div class="annotation-nav">
+                        <button class="anno-prev">‹</button>
+                        <span class="pager">1 / ${group.length}</span>
+                        <button class="anno-next">›</button>
+                    </div>
+                `;
+            }
+            
+            bubble.innerHTML = contentHTML + navHTML;
             diaryCard.appendChild(bubble);
 
-            // 【关键修改】新的定位算法
+            // 5. 定位批注框
             const anchorRect = anchorParagraph.getBoundingClientRect();
             const cardRect = diaryCard.getBoundingClientRect();
-            
-            // top = 段落顶部相对于卡片顶部的距离
-            const topPosition = anchorRect.top - cardRect.top;
-            // left = 卡片的宽度 + 15px 的间距
-            const leftPosition = cardRect.width + 15;
-
-            // 应用垂直偏移量，防止重叠
-            bubble.style.top = `${topPosition + paragraphOffsets[paragraphId]}px`;
-            bubble.style.left = `${leftPosition}px`;
-
-            // 更新下一个批注的偏移量
-            // 我们需要先让浏览器渲染一下，才能获取到 bubble 的真实高度
-            setTimeout(() => {
-                paragraphOffsets[paragraphId] += bubble.offsetHeight + 5;
-            }, 0);
+            bubble.style.top = `${anchorRect.top - cardRect.top}px`;
+            bubble.style.left = `${anchorRect.right - cardRect.left + 15}px`;
         }
-    });
+    }
 }
-
 async function loadHomepage(sortBy = 'time') {
     const token = localStorage.getItem('jwtToken');
     try {
@@ -779,6 +790,29 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('请先登录才能点赞哦！');
             window.location.href = 'login.html';
             return;
+        }
+        // --- 【新增】处理批注翻页逻辑 ---
+        if (prevButton || nextButton) {
+            event.preventDefault();
+            const bubble = event.target.closest('.annotation-bubble');
+            const contentDivs = bubble.querySelectorAll('.annotation-content');
+            const pager = bubble.querySelector('.pager');
+            let currentPage = parseInt(bubble.dataset.currentPage);
+            const totalPages = contentDivs.length;
+
+            // 隐藏当前页
+            contentDivs[currentPage].style.display = 'none';
+
+            if (prevButton) {
+                currentPage = (currentPage - 1 + totalPages) % totalPages;
+            } else if (nextButton) {
+                currentPage = (currentPage + 1) % totalPages;
+            }
+
+            // 显示新页面
+            contentDivs[currentPage].style.display = 'block';
+            bubble.dataset.currentPage = currentPage;
+            pager.textContent = `${currentPage + 1} / ${totalPages}`;
         }
 
         const diaryId = likeButton.dataset.diaryId;

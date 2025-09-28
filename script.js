@@ -17,6 +17,7 @@ function parseJwt(token) {
   }
 }
 
+// --- 【修改】更新头部UI，增加“我的日记”链接 ---
 function updateHeaderUI() {
   const authLinksContainer = document.querySelector('.user-auth-links');
   const writeDiaryBtn = document.getElementById('write-diary-btn');
@@ -25,7 +26,9 @@ function updateHeaderUI() {
     const decodedToken = parseJwt(token);
     if (decodedToken && decodedToken.username) {
       const username = decodedToken.username;
+      // 在这里添加了 “我的日记” 链接
       authLinksContainer.innerHTML = `
+        <a href="mydiaries.html" class="nav-link">我的日记</a>
         <span class="welcome-message">欢迎, ${username}</span>
         <a href="#" id="logout-link">退出</a>
       `;

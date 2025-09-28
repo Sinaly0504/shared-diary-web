@@ -135,63 +135,25 @@ function renderAnnotations(annotations) {
     if (!diaryCard) return;
 
     document.querySelectorAll('.annotation-bubble').forEach(bubble => bubble.remove());
+
     if (!annotations || annotations.length === 0) return;
 
-    // 1. 先将批注按段落ID进行分组
-    const groupedAnnotations = annotations.reduce((acc, anno) => {
-        const key = anno.anchor_paragraph_id;
-        if (!acc[key]) {
-            acc[key] = [];
-        }
-        acc[key].push(anno);
-        return acc;
-    }, {});
-
-    // 2. 遍历每个分组，为每个段落创建一个批注框
-    for (const paragraphId in groupedAnnotations) {
-        const group = groupedAnnotations[paragraphId];
-        const anchorParagraph = document.getElementById(paragraphId);
+    annotations.forEach(annotation => {
+        const bubble = document.createElement('div');
+        bubble.className = 'annotation-bubble';
         
-        if (anchorParagraph) {
-            const bubble = document.createElement('div');
-            bubble.className = 'annotation-bubble';
-            // 添加 data 属性来追踪当前页码
-            bubble.dataset.currentPage = '0'; 
+        // 我们将在下一步添加点击显示作者的功能
+        bubble.innerHTML = `
+            <span class="author" style="display: none;">${annotation.username}:</span>
+            ${annotation.content}
+        `;
+        
+        diaryCard.appendChild(bubble);
 
-            // 3. 在批注框内部创建所有批注内容，但默认只显示第一个
-            let contentHTML = '';
-            group.forEach((annotation, index) => {
-                const displayStyle = index === 0 ? 'block' : 'none';
-                contentHTML += `
-                    <div class="annotation-content" style="display: ${displayStyle};">
-                        <span class="author">${annotation.username}:</span>
-                        ${annotation.content}
-                    </div>
-                `;
-            });
-
-            // 4. 如果有多条批注，则添加翻页导航
-            let navHTML = '';
-            if (group.length > 1) {
-                navHTML = `
-                    <div class="annotation-nav">
-                        <button class="anno-prev">‹</button>
-                        <span class="pager">1 / ${group.length}</span>
-                        <button class="anno-next">›</button>
-                    </div>
-                `;
-            }
-            
-            bubble.innerHTML = contentHTML + navHTML;
-            diaryCard.appendChild(bubble);
-
-            // 5. 定位批注框
-            const anchorRect = anchorParagraph.getBoundingClientRect();
-            const cardRect = diaryCard.getBoundingClientRect();
-            bubble.style.top = `${anchorRect.top - cardRect.top}px`;
-            bubble.style.left = `${anchorRect.right - cardRect.left + 15}px`;
-        }
-    }
+        // 【关键修改】根据数据库中的坐标设置位置
+        bubble.style.left = `${annotation.position_x}px`;
+        bubble.style.top = `${annotation.position_y}px`;
+    });
 }
 async function loadHomepage(sortBy = 'time') {
     const token = localStorage.getItem('jwtToken');

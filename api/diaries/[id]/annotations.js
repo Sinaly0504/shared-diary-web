@@ -1,4 +1,4 @@
-// /api/diaries/[id]/annotations.js
+// /api/diaries/[id]/annotations.js (V2.0 - 使用坐标)
 
 import { Pool } from 'pg';
 
@@ -17,11 +17,13 @@ export default async function handler(req, res) {
   try {
     const { id: diaryId } = req.query;
 
+    // 【修改】SQL 查询语句，获取坐标而不是段落ID
     const query = `
       SELECT
         a.id,
         a.content,
-        a.anchor_paragraph_id,
+        a.position_x,
+        a.position_y,
         a.created_at,
         u.username
       FROM annotations a

@@ -594,8 +594,7 @@ body.dark-theme {
 /* --- 段评批注显示样式 --- */
 .annotation-bubble {
     position: absolute;
-    /* 【修改】不再使用 transform，直接由 JS 计算 top 值 */
-    width: 160px; /* 可以适当加宽 */
+    width: 160px;
     padding: 10px;
     background-color: #fffbe6;
     border: 1px solid #ded7b8;
@@ -608,6 +607,7 @@ body.dark-theme {
     z-index: 500;
     opacity: 0;
     animation: fadeIn 0.5s forwards;
+    cursor: grab; /* 【新增】给批注框一个“可抓取”的鼠标手势 */
 }
 
 .annotation-bubble .author {

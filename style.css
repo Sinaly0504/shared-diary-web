@@ -230,7 +230,9 @@ body.dark-theme {
     font-size: 1.1em;
 }
 
-/* 8. 新的头部和认证页面样式 */
+/* 8. 统一的头部和认证页面样式 (最终版) */
+
+/* --- 新的头部样式 --- */
 .main-header {
     display: flex;
     justify-content: space-between;
@@ -241,7 +243,9 @@ body.dark-theme {
     text-decoration: none;
 }
 
+/* 右上角的“注册/登录”链接，使用清晰的非书法字体 */
 .user-auth-links {
+    font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
     font-size: 0.9em;
 }
 
@@ -256,39 +260,32 @@ body.dark-theme {
     color: var(--accent-color);
 }
 
-/* 认证页面的特殊样式 */
-.auth-page {
-    font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
-}
-
+/* --- 认证页面的表单样式 --- */
 .auth-form {
     max-width: 400px;
-    margin: 0 auto; /* 让表单在主内容区水平居中 */
+    margin: 30px auto; /* 增加顶部外边距，让表单和导航栏分开 */
     background: var(--bg-color-card);
     padding: 40px;
     border-radius: 8px;
     box-shadow: 0 4px 8px var(--shadow-color);
 }
+
+/* 认证表单内的标题，保持书法字体 */
 .auth-form h2 {
     text-align: center;
-    margin-bottom: 20px;
-    font-family: 'Ma Shan Zheng', sans-serif; /* 标题仍然使用艺术字体 */
+    margin-bottom: 30px;
+    font-family: 'Ma Shan Zheng', sans-serif;
     font-size: 2em;
 }
 
-/* 9. 认证页面样式优化 */
-
-/* 解决字体问题：
-   让认证页面内的所有主要元素都统一使用我们的全局书法字体 */
-.auth-page body,
-.auth-page .form-group label,
-.auth-page input,
-.auth-page button {
+/* 认证表单内的标签和输入框，统一使用书法字体 */
+.auth-form label,
+.auth-form input,
+.auth-form button {
     font-family: 'Ma Shan Zheng', sans-serif;
 }
 
-/* 解决拥挤问题：
-   精确地增大认证表单内部的标签和输入框之间的距离 */
+/* 认证表单内的表单组，增大间距，解决拥挤问题 */
 .auth-form .form-group {
-    gap: 12px; /* 将间距从默认的 8px 增大到 12px */
+    gap: 15px; /* 进一步拉开距离 */
 }

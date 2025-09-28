@@ -142,11 +142,10 @@ function renderAnnotations(annotations) {
         const bubble = document.createElement('div');
         bubble.className = 'annotation-bubble';
         
-        // 【新增】给 bubble 元素添加一个 data-* 属性来存储它的 ID
         bubble.dataset.annotationId = annotation.id;
         
         bubble.innerHTML = `
-            <span class="author" style="display: none;">${annotation.username}:</span>
+            <span class="author" style="display: none;">By: ${annotation.username}</span>
             <div class="annotation-content">${annotation.content}</div>
         `;
         
@@ -155,71 +154,74 @@ function renderAnnotations(annotations) {
         bubble.style.left = `${annotation.position_x}px`;
         bubble.style.top = `${annotation.position_y}px`;
         
+        // 【新增】从数据库读取或设置一个默认字体大小
+        // 我们假设数据库未来会有一个 font_size 字段，现在先用一个临时方案
+        let currentFontSize = parseFloat(annotation.font_size) || 16; // 默认16px
+        bubble.style.fontSize = `${currentFontSize}px`;
+
         diaryCard.appendChild(bubble);
 
-        // --- 【新增】实现拖动功能的核心逻辑 ---
+        // --- 区分“点击”与“拖动”的逻辑 ---
+        let isDragging = false;
+        bubble.addEventListener('mousedown', () => { isDragging = false; });
+        bubble.addEventListener('mousemove', () => { isDragging = true; });
+        bubble.addEventListener('mouseup', () => {
+            if (!isDragging) {
+                const authorSpan = bubble.querySelector('.author');
+                const isAuthorVisible = authorSpan.style.display === 'block';
+                authorSpan.style.display = isAuthorVisible ? 'none' : 'block';
+            }
+        });
 
-        // 1. 当鼠标在批注上按下时 (拖动开始)
+        // --- 实现拖动功能的逻辑 ---
         bubble.addEventListener('mousedown', (e) => {
-            // 阻止浏览器的默认文字选中行为，这是最关键的一步！
             e.preventDefault();
-
-            // 记录当前鼠标的起始位置
-            const startX = e.clientX;
-            const startY = e.clientY;
+            const startX = e.clientX, startY = e.clientY;
+            const initialLeft = bubble.offsetLeft, initialTop = bubble.offsetTop;
             
-            // 记录批注的初始位置 (offsetLeft/Top 是相对于父元素的整数坐标)
-            const initialLeft = bubble.offsetLeft;
-            const initialTop = bubble.offsetTop;
-            
-            // 定义一个函数，用于处理鼠标移动
             const onMouseMove = (moveEvent) => {
-                // 计算鼠标移动的距离
-                const deltaX = moveEvent.clientX - startX;
-                const deltaY = moveEvent.clientY - startY;
-
-                // 计算批注的新位置
-                bubble.style.left = `${initialLeft + deltaX}px`;
-                bubble.style.top = `${initialTop + deltaY}px`;
+                bubble.style.left = `${initialLeft + (moveEvent.clientX - startX)}px`;
+                bubble.style.top = `${initialTop + (moveEvent.clientY - startY)}px`;
             };
-
-            // 2. 当鼠标松开时 (拖动结束)
             const onMouseUp = () => {
-                // 移除事件监听，这是非常重要的性能优化！
                 document.removeEventListener('mousemove', onMouseMove);
-                document.removeEventListener('mouseup', onMouseUp);
-
-                // --- 将新位置保存到后端 ---
+                if (!isDragging) return;
                 const token = localStorage.getItem('jwtToken');
-                if (!token) return; // 如果未登录，则不保存
-
-                const newLeft = parseFloat(bubble.style.left);
-                const newTop = parseFloat(bubble.style.top);
-                const annotationId = bubble.dataset.annotationId;
-
-                fetch(`/api/annotations/${annotationId}`, {
+                if (!token) return;
+                fetch(`/api/annotations/${bubble.dataset.annotationId}`, {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({
-                        position_x: newLeft,
-                        position_y: newTop
+                        position_x: parseFloat(bubble.style.left),
+                        position_y: parseFloat(bubble.style.top)
                     })
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        console.error('更新批注位置失败');
-                    }
-                })
-                .catch(err => console.error('请求失败:', err));
+                }).catch(err => console.error('请求失败:', err));
             };
-
-            // 将 "mousemove" 和 "mouseup" 事件绑定到整个 document 上
-            // 这样即使用户鼠标拖动得很快，移出了批注区域，也能继续响应
             document.addEventListener('mousemove', onMouseMove);
-            document.addEventListener('mouseup', onMouseUp, { once: true }); // { once: true } 表示这个事件只触发一次就自动移除
+            document.addEventListener('mouseup', onMouseUp, { once: true });
+        });
+
+        // --- 【新增】调整字体大小的逻辑 ---
+        bubble.addEventListener('wheel', (event) => {
+            // 检查是否按下了 Ctrl 键 (或 Mac 的 Cmd 键)
+            if (event.ctrlKey || event.metaKey) {
+                // 阻止页面的默认缩放行为
+                event.preventDefault();
+                
+                // 根据滚轮方向调整字体大小
+                const scrollDirection = Math.sign(event.deltaY); // -1 是向上滚, 1 是向下滚
+                currentFontSize -= scrollDirection; // 向上滚增大，向下滚减小
+
+                // 限制字体大小范围，避免过大或过小
+                if (currentFontSize < 10) currentFontSize = 10;
+                if (currentFontSize > 48) currentFontSize = 48;
+                
+                // 应用新的字体大小
+                bubble.style.fontSize = `${currentFontSize}px`;
+
+                // 在这里，我们暂时不把字体大小保存到后端
+                // 等我们之后为数据库添加 font_size 字段后，可以轻松地在这里加上 fetch 请求
+            }
         });
     });
 }

@@ -290,14 +290,15 @@ body.dark-theme {
     gap: 15px; /* 进一步拉开距离 */
 }
 
-/* --- 认证页面表单样式优化 --- */
-.auth-container .form-group label {
-  display: block; /* 确保标签自己占一行 */
-  margin-bottom: 8px; /* 在标签下方增加 8px 的外边距，这就是拉开间距的关键！*/
-  font-size: 0.9rem; /* 可以微调一下字体大小 */
-  color: var(--text-color-secondary);
+/* --- 统一认证页面的间距和消息样式 --- */
+.auth-form .form-group label {
+    margin-bottom: -5px; /* 调整标签和输入框的间距 */
 }
 
-.auth-container .form-group input {
-    margin-bottom: 12px; /* 在输入框下方也增加一点间距 */
+.auth-message {
+    color: #d9534f; /* 默认使用红色来显示错误消息 */
+    text-align: center;
+    margin-top: 15px; /* 与上方的元素保持间距 */
+    min-height: 1em; /* 占据固定高度，防止页面在消息出现时跳动 */
+    font-family: "Helvetica Neue", Helvetica, sans-serif; /* 使用更清晰的非书法字体显示消息 */
 }

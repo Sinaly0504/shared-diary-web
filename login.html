@@ -6,49 +6,39 @@
     <title>登录 - 共享日记</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
-    <header>
-        <div class="container">
-            <div class="logo">
-                <a href="index.html">共享日记</a>
-            </div>
-            <nav>
-                <a href="login.html">登录</a>
-                <a href="signup.html">注册</a>
-            </nav>
-            <div class="theme-switch-container">
-                <label for="theme-switch" class="theme-switch-label">
-                    <span>🌙</span>
-                    <span>☀️</span>
-                    <div class="theme-switch-handle"></div>
-                </label>
-                <input type="checkbox" id="theme-switch" class="theme-switch-checkbox">
-            </div>
+<body class="auth-page">
+
+    <header class="main-header">
+        <a href="index.html" class="logo-link"><h1>共享日记</h1></a>
+        <div class="user-auth-links">
+            <a href="signup.html">注册</a>
+            <a href="login.html">登录</a>
         </div>
     </header>
 
-    <main class="auth-page">
-        <div class="auth-container">
-            <h1>登录共享日记</h1> 
-            <form id="login-form">
-                <div class="form-group">
-                    <label for="username">用户名</label>
-                    <input type="text" id="username" name="username" placeholder="请输入你的用户名" required>
-                </div>
-                <div class="form-group">
-                    <label for="password">密码</label>
-                    <input type="password" id="password" name="password" placeholder="请输入你的密码" required>
-                </div>
-                <div class="form-group">
-                    <button type="submit" class="btn">登录</button>
-                </div>
-            </form>
-            <p id="auth-message" class="auth-message"></p>
-            <p class="auth-switch">还没有账户？ <a href="signup.html">立即注册</a></p>
-        </div>
+    <main class="content-area">
+        <form class="auth-form" id="login-form">
+            <h2>登录 共享日记</h2>
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" name="username" placeholder="请输入你的用户名" required>
+            </div>
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" placeholder="请输入你的密码" required>
+            </div>
+            <div class="form-actions">
+                <p class="auth-switch">还没有账户？ <a href="signup.html">立即注册</a></p>
+                <button type="submit" class="nav-button">登录</button>
+            </div>
+            <p id="auth-message" class="auth-message"></p> 
+        </form>
     </main>
 
-    <script src="data.js"></script>
+    <footer class="main-footer">
+        <p>&copy; 2025 ShareDiary. All Rights Reserved.</p>
+    </footer>
+
     <script src="script.js"></script>
 </body>
 </html>

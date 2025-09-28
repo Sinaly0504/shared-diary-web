@@ -131,34 +131,51 @@ function renderComments(comments) {
 }
 
 function renderAnnotations(annotations) {
-    // 先清除旧的批注，以防重复渲染
+    const diaryCard = document.getElementById('diary-detail-container');
+    if (!diaryCard) return;
+
+    // 先清除旧的批注
     document.querySelectorAll('.annotation-bubble').forEach(bubble => bubble.remove());
 
-    if (!annotations || annotations.length === 0) {
-        return; // 如果没有批注，就什么都不做
-    }
+    if (!annotations || annotations.length === 0) return;
+
+    const paragraphOffsets = {}; // 用于记录每个段落的批注垂直偏移量
 
     annotations.forEach(annotation => {
         const anchorParagraph = document.getElementById(annotation.anchor_paragraph_id);
         
-        // 只有在页面上找到了对应的段落时，才显示批注
         if (anchorParagraph) {
+            const paragraphId = annotation.anchor_paragraph_id;
+            
+            // 初始化偏移量
+            if (!paragraphOffsets[paragraphId]) {
+                paragraphOffsets[paragraphId] = 0;
+            }
+
             const bubble = document.createElement('div');
             bubble.className = 'annotation-bubble';
             
-            // 填充批注内容
             bubble.innerHTML = `
                 <span class="author">${annotation.username}:</span>
                 ${annotation.content}
             `;
 
-            // 将批注框添加到 body 中，以便绝对定位
-            document.body.appendChild(bubble);
+            // 【修复】将批注框添加到日记卡片内部
+            diaryCard.appendChild(bubble);
 
-            // 计算并设置批注框的位置
-            const rect = anchorParagraph.getBoundingClientRect();
-            bubble.style.left = `${rect.right + 10 + window.scrollX}px`;
-            bubble.style.top = `${rect.top + rect.height / 2 + window.scrollY}px`;
+            // 计算位置
+            const anchorRect = anchorParagraph.getBoundingClientRect();
+            const cardRect = diaryCard.getBoundingClientRect();
+            
+            const topPosition = anchorRect.top - cardRect.top + anchorRect.height / 2;
+            const leftPosition = anchorRect.width + 20; // 在段落右侧20px处
+
+            // 【修复】应用垂直偏移量，防止重叠
+            bubble.style.top = `${topPosition + paragraphOffsets[paragraphId]}px`;
+            bubble.style.left = `${leftPosition}px`;
+
+            // 更新下一个批注的偏移量
+            paragraphOffsets[paragraphId] += bubble.offsetHeight + 5; // 5px 的间距
         }
     });
 }

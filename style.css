@@ -637,18 +637,18 @@ body.dark-theme {
     position: relative;
     display: inline-flex;
     align-items: center;
-    width: auto;
-    height: 26px;
     cursor: pointer;
+    /* 【修改】为开关本身留出空间 */
+    padding-left: 55px; 
+    height: 26px;
 }
 
 .toggle-switch .label-text {
-    margin-left: 8px;
+    /* 【修改】不再需要 margin-left */
     font-family: sans-serif;
     font-size: 0.9em;
     color: var(--font-color-secondary);
 }
-
 .toggle-switch input {
     opacity: 0;
     width: 0;

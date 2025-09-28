@@ -1,10 +1,9 @@
-// --- 共享日记 脚本文件 v10.0: 连接数据库获取日记列表 ---
+// --- 共享日记 脚本文件 v12.0: 实现删除功能 ---
 
 // =================================================================
 // 辅助函数 (Helper Functions)
 // =================================================================
 
-// --- JWT 解码工具函数 ---
 function parseJwt(token) {
   try {
     const base64Url = token.split('.')[1];
@@ -18,12 +17,10 @@ function parseJwt(token) {
   }
 }
 
-// --- 更新头部UI以反映登录状态 (V2.0, 带权限控制) ---
 function updateHeaderUI() {
   const authLinksContainer = document.querySelector('.user-auth-links');
   const writeDiaryBtn = document.getElementById('write-diary-btn');
   const token = localStorage.getItem('jwtToken');
-
   if (token && authLinksContainer) {
     const decodedToken = parseJwt(token);
     if (decodedToken && decodedToken.username) {
@@ -51,25 +48,18 @@ function updateHeaderUI() {
   }
 }
 
-// --- 【关键修改 V2.0】渲染从后端获取的日记 ---
 function renderDiaries(diaries) {
     const diaryContainer = document.getElementById('diary-container');
     if (!diaryContainer) return;
     diaryContainer.innerHTML = '';
-    
-    // 我们不再需要 .slice().reverse()，因为后端已经排好序了
     diaries.forEach(entry => {
         const card = document.createElement('div');
         card.classList.add('diary-card');
-        
-        // 使用新的字段名: username 和 created_at
-        // 同时，格式化日期，让它更好看
         const formattedDate = new Date(entry.created_at).toLocaleDateString();
-
         card.innerHTML = `
             <a href="detail.html?id=${entry.id}" class="card-link">
                 <h2 class="card-title">${entry.title}</h2>
-                <p class="card-content">${entry.content}</p>
+                <p class="card-content">${entry.content.substring(0, 100)}...</p>
                 <div class="card-footer">
                     <span class="author">By: ${entry.username}</span>
                     <span class="date">${formattedDate}</span>
@@ -80,24 +70,18 @@ function renderDiaries(diaries) {
     });
 }
 
-// --- 【关键修改 V2.0】从后端 API 加载主页数据 ---
 async function loadHomepage() {
     try {
         const response = await fetch('/api/diaries/list');
-        if (!response.ok) {
-            throw new Error('获取日记失败');
-        }
+        if (!response.ok) throw new Error('获取日记失败');
         const diaries = await response.json();
         renderDiaries(diaries);
     } catch (error) {
         console.error("加载主页数据失败:", error);
         const diaryContainer = document.getElementById('diary-container');
-        if (diaryContainer) {
-            diaryContainer.innerHTML = '<p>加载日记失败，请稍后刷新重试。</p>';
-        }
+        if (diaryContainer) diaryContainer.innerHTML = '<p>加载日记失败，请稍后刷新重试。</p>';
     }
 }
-
 
 // =================================================================
 // 页面判断与事件监听 (整个应用的“大脑”)
@@ -107,12 +91,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateHeaderUI();
 
-    const diaryForm = document.querySelector('.diary-form');
-    const diaryContainer = document.getElementById('diary-container');
-    const diaryDetailContainer = document.getElementById('diary-detail-container');
-    const signupForm = document.getElementById('signup-form');
-    const loginForm = document.getElementById('login-form');
-    // --- 【修复】主题切换功能 (所有页面通用) ---
     const themeToggleButton = document.getElementById('theme-toggle-button');
     if (themeToggleButton) {
         themeToggleButton.addEventListener('click', () => {
@@ -120,9 +98,77 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const diaryForm = document.querySelector('.diary-form');
+    const diaryContainer = document.getElementById('diary-container');
+    const diaryDetailContainer = document.getElementById('diary-detail-container');
+    const signupForm = document.getElementById('signup-form');
+    const loginForm = document.getElementById('login-form');
+
     // 如果是主页 (index.html)
     if (diaryContainer) {
         loadHomepage();
+    }
+    // 如果是详情页 (detail.html)
+    else if (diaryDetailContainer) {
+        const params = new URLSearchParams(window.location.search);
+        const diaryId = params.get('id');
+        
+        async function loadDiaryDetail() {
+            try {
+                const response = await fetch(`/api/diaries/${diaryId}`);
+                if (!response.ok) throw new Error('日记未找到');
+                const diary = await response.json();
+                
+                document.getElementById('detail-title').textContent = diary.title;
+                document.getElementById('detail-content').textContent = diary.content;
+                const formattedDate = new Date(diary.created_at).toLocaleDateString();
+                document.getElementById('detail-meta').innerHTML = `<span class="author">By: ${diary.username}</span><span class="date">${formattedDate}</span>`;
+                
+                const deleteButton = document.getElementById('delete-button');
+                const token = localStorage.getItem('jwtToken');
+                if (token) {
+                    const currentUser = parseJwt(token);
+                    if (currentUser.username === diary.username) {
+                        deleteButton.style.display = 'inline-block';
+                        
+                        // --- 【关键修改】为删除按钮添加事件监听 ---
+                        deleteButton.addEventListener('click', async () => {
+                            if (confirm('你确定要删除这篇日记吗？此操作无法撤销。')) {
+                                try {
+                                    const deleteResponse = await fetch(`/api/diaries/${diaryId}`, {
+                                        method: 'DELETE',
+                                        headers: {
+                                            'Authorization': `Bearer ${token}`
+                                        }
+                                    });
+
+                                    if (deleteResponse.ok) {
+                                        alert('删除成功！');
+                                        window.location.href = 'index.html';
+                                    } else {
+                                        const errorResult = await deleteResponse.json();
+                                        alert(`删除失败: ${errorResult.message}`);
+                                    }
+                                } catch (error) {
+                                    console.error('删除请求失败:', error);
+                                    alert('删除失败，请检查网络连接。');
+                                }
+                            }
+                        });
+                        // --- 修改结束 ---
+                        
+                    } else {
+                        deleteButton.style.display = 'none';
+                    }
+                } else {
+                    deleteButton.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('加载日记详情失败:', error);
+                diaryDetailContainer.innerHTML = '<h1>哦哦，没有找到这篇日记...</h1><a href="index.html" class="nav-button secondary">返回首页</a>';
+            }
+        }
+        if (diaryId) loadDiaryDetail();
     }
     // 如果是“写日记”页面 (write.html)
     else if (diaryForm) {
@@ -161,54 +207,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert('网络错误，发布失败，请稍后再试。');
             }
         });
-    }
-    // 【关键修改 V2.0】如果是详情页 (detail.html)
-    else if (diaryDetailContainer) {
-        const params = new URLSearchParams(window.location.search);
-        const diaryId = params.get('id');
-
-        async function loadDiaryDetail() {
-            try {
-                const response = await fetch(`/api/diaries/${diaryId}`);
-                if (!response.ok) {
-                    throw new Error('日记未找到');
-                }
-                const diary = await response.json();
-                
-                // 填充页面内容
-                document.getElementById('detail-title').textContent = diary.title;
-                document.getElementById('detail-content').textContent = diary.content;
-                const formattedDate = new Date(diary.created_at).toLocaleDateString();
-                document.getElementById('detail-meta').innerHTML = `
-                    <span class="author">By: ${diary.username}</span>
-                    <span class="date">${formattedDate}</span>
-                `;
-                
-                // 【权限控制】只有作者本人才能看到删除按钮
-                const token = localStorage.getItem('jwtToken');
-                const deleteButton = document.getElementById('delete-button');
-                if (token) {
-                    const currentUser = parseJwt(token);
-                    if (currentUser.username === diary.username) {
-                        deleteButton.style.display = 'inline-block';
-                        // 我们将在下一步实现删除功能
-                        // deleteButton.addEventListener('click', handleDelete); 
-                    } else {
-                        deleteButton.style.display = 'none';
-                    }
-                } else {
-                    deleteButton.style.display = 'none';
-                }
-
-            } catch (error) {
-                console.error('加载日记详情失败:', error);
-                diaryDetailContainer.innerHTML = '<h1>哦哦，没有找到这篇日记...</h1><a href="index.html" class="nav-button secondary">返回首页</a>';
-            }
-        }
-
-        if (diaryId) {
-            loadDiaryDetail();
-        }
     }
     // 如果是注册页面 (signup.html)
     else if (signupForm) {

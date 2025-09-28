@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - 共享日记</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">
+                <a href="index.html">共享日记</a>
+            </div>
+            <nav>
+                <a href="login.html">登录</a>
+                <a href="signup.html">注册</a>
+            </nav>
+            <div class="theme-switch-container">
+                <label for="theme-switch" class="theme-switch-label">
+                    <span>🌙</span>
+                    <span>☀️</span>
+                    <div class="theme-switch-handle"></div>
+                </label>
+                <input type="checkbox" id="theme-switch" class="theme-switch-checkbox">
+            </div>
+        </div>
+    </header>
+
+    <main class="auth-page">
+        <div class="auth-container">
+            <h1>登录</h1>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="btn">登录</button>
+            </form>
+            <p id="auth-message" class="auth-message"></p>
+            <p class="auth-switch">还没有账户？ <a href="signup.html">立即注册</a></p>
+        </div>
+    </main>
+
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

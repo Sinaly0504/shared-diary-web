@@ -173,3 +173,66 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+// --- 登录逻辑 ---
+
+// 首先，找到登录表单
+const loginForm = document.getElementById('login-form');
+
+// 同样，找到用于显示消息的元素
+const authMessage = document.getElementById('auth-message');
+
+// 检查登录表单是否存在于当前页面
+if (loginForm) {
+  // 为表单添加 "submit" 事件监听器
+  loginForm.addEventListener('submit', async function(event) {
+    // 1. 阻止表单的默认提交行为（防止页面刷新）
+    event.preventDefault(); 
+
+    // 清空之前的消息
+    if(authMessage) authMessage.textContent = '';
+
+    // 2. 从表单中获取用户输入的值
+    const username = loginForm.username.value;
+    const password = loginForm.password.value;
+
+    try {
+      // 3. 使用 fetch API 发送 POST 请求到后端
+      const response = await fetch('/api/login', {
+        method: 'POST', // 指定请求方法为 POST
+        headers: {
+          'Content-Type': 'application/json', // 告诉服务器我们发送的是 JSON 格式的数据
+        },
+        body: JSON.stringify({ username, password }), // 将我们的 JS 对象转换为 JSON 字符串
+      });
+
+      // 4. 解析从服务器返回的 JSON 响应
+      const data = await response.json();
+
+      // 5. 根据响应的状态码判断登录是否成功
+      if (response.ok) { // response.ok 会在 HTTP 状态码为 200-299 时为 true
+        
+        // 登录成功！
+        if(authMessage) {
+            authMessage.textContent = data.message;
+            authMessage.style.color = 'green';
+        }
+
+        // 6. 将后端返回的 token 存储到 localStorage
+        localStorage.setItem('jwtToken', data.token);
+
+        // 7. 延迟一小会儿然后跳转到主页，让用户能看到成功信息
+        setTimeout(() => {
+          window.location.href = 'index.html';
+        }, 1000); // 1000 毫秒 = 1 秒
+
+      } else {
+        // 登录失败，显示后端返回的错误信息
+        if(authMessage) authMessage.textContent = data.message;
+      }
+    } catch (error) {
+      // 网络错误或其他意外错误
+      console.error('登录请求失败:', error);
+      if(authMessage) authMessage.textContent = '网络错误，请稍后再试。';
+    }
+  });
+}

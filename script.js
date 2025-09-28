@@ -368,6 +368,42 @@ document.addEventListener('DOMContentLoaded', () => {
         if (diaryId) {
             loadDiaryDetail();
             commentForm.addEventListener('submit', async (event) => {
+                // --- 【新增】导出为图片功能 ---
+                const exportButton = document.getElementById('export-button');
+                if (exportButton) {
+                    exportButton.addEventListener('click', () => {
+                        const diaryCard = document.getElementById('diary-detail-container');
+                        const diaryTitle = document.getElementById('detail-title').textContent || 'diary';
+
+                        // 可以在这里添加一个“正在生成图片...”的提示
+                        exportButton.textContent = '正在生成...';
+                        exportButton.disabled = true;
+
+                        html2canvas(diaryCard, {
+                            // 提高截图质量
+                            scale: 2, 
+                            useCORS: true // 允许加载跨域图片（如果有的话）
+                        }).then(canvas => {
+                            // 创建一个临时的 a 标签用于下载
+                            const link = document.createElement('a');
+                            link.href = canvas.toDataURL('image/png');
+                            link.download = `${diaryTitle.trim()}.png`; // 使用日记标题作为文件名
+                            
+                            // 触发点击以下载图片
+                            link.click();
+
+                            // 恢复按钮状态
+                            exportButton.textContent = '导出为图片';
+                            exportButton.disabled = false;
+                        }).catch(error => {
+                            console.error('导出图片失败:', error);
+                            alert('导出图片失败，请稍后重试。');
+                            // 恢复按钮状态
+                            exportButton.textContent = '导出为图片';
+                            exportButton.disabled = false;
+                        });
+                    });
+                }
                 event.preventDefault();
                 const contentElement = document.getElementById('comment-content');
                 const content = contentElement.value.trim();

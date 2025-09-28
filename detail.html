@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>日记详情 - 共享日记</title>
     <link rel="stylesheet" href="style.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 
@@ -25,23 +27,12 @@
         <div class="form-actions">
             <a href="index.html" class="nav-button secondary">返回首页</a>
             <a href="#" id="edit-link" class="nav-button secondary" style="display: none;">编辑日记</a>
+            <button id="export-button" class="nav-button secondary">导出为图片</button>
             <button id="delete-button" class="nav-button">删除日记</button> 
         </div>
 
         <div id="comments-section" class="comments-section">
-            <h2>评论区</h2>
-            
-            <div id="comments-list" class="comments-list">
-                </div>
-
-            <form id="comment-form" class="comment-form" style="display: none;">
-                <textarea id="comment-content" placeholder="写下你的评论..." required></textarea>
-                <button type="submit" class="nav-button">发表评论</button>
-            </form>
-            <p id="comment-login-prompt" style="display: none;">
-                <a href="login.html">登录</a>后即可发表评论。
-            </p>
-        </div>
+            </div>
     </main>
 
     <footer class="main-footer">

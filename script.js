@@ -1,3 +1,9 @@
+// --- 共享日记 脚本文件 v23.0: 最终整合版 ---
+
+// =================================================================
+// 辅助函数 (Helper Functions)
+// =================================================================
+
 function parseJwt(token) {
   try {
     const base64Url = token.split('.')[1];
@@ -19,6 +25,7 @@ function updateHeaderUI() {
     const decodedToken = parseJwt(token);
     if (decodedToken && decodedToken.username) {
       const username = decodedToken.username;
+      
       authLinksContainer.innerHTML = `
         <div class="user-menu">
             <button class="user-menu-trigger">欢迎, ${username} ▼</button>
@@ -28,18 +35,22 @@ function updateHeaderUI() {
             </div>
         </div>
       `;
+
       const trigger = authLinksContainer.querySelector('.user-menu-trigger');
       const dropdown = authLinksContainer.querySelector('.user-menu-dropdown');
       const logoutLink = authLinksContainer.querySelector('#logout-link');
+
       trigger.addEventListener('click', (event) => {
         event.stopPropagation();
         dropdown.classList.toggle('is-open');
       });
+
       document.addEventListener('click', () => {
         if (dropdown.classList.contains('is-open')) {
           dropdown.classList.remove('is-open');
         }
       });
+
       if (logoutLink) {
         logoutLink.addEventListener('click', function(event) {
           event.preventDefault();
@@ -47,6 +58,7 @@ function updateHeaderUI() {
           window.location.href = 'index.html';
         });
       }
+
       if (writeDiaryBtn) writeDiaryBtn.style.display = 'inline-block';
     }
   } else if (authLinksContainer) {
@@ -95,8 +107,31 @@ function renderDiaries(diaries) {
     });
 }
 
+function renderComments(comments) {
+    const commentsList = document.getElementById('comments-list');
+    if (!commentsList) return;
+    if (comments.length === 0) {
+        commentsList.innerHTML = '<p>还没有评论，快来抢占第一个沙发吧！</p>';
+        return;
+    }
+    commentsList.innerHTML = '';
+    comments.forEach(comment => {
+        const commentElement = document.createElement('div');
+        commentElement.classList.add('comment');
+        const formattedDate = new Date(comment.created_at).toLocaleString();
+        commentElement.innerHTML = `
+            <div class="comment-header">
+                <span class="comment-author">${comment.username}</span>
+                <span class="comment-date">${formattedDate}</span>
+            </div>
+            <p class="comment-content">${comment.content}</p>
+        `;
+        commentsList.appendChild(commentElement);
+    });
+}
+
+
 async function loadHomepage(sortBy = 'time') {
-    currentSearchQuery = ''; // 每次加载主页时，清空搜索词
     const token = localStorage.getItem('jwtToken');
     try {
         const response = await fetch(`/api/diaries/list?sortBy=${sortBy}`, {
@@ -113,7 +148,6 @@ async function loadHomepage(sortBy = 'time') {
 }
 
 async function loadMyDiaries(sortBy = 'time') {
-    currentSearchQuery = ''; // 每次加载“我的日记”时，清空搜索词
     const diaryContainer = document.getElementById('diary-container');
     const token = localStorage.getItem('jwtToken');
     if (!token) {
@@ -140,48 +174,24 @@ async function loadMyDiaries(sortBy = 'time') {
     }
 }
 
-function renderComments(comments) {
-    const commentsList = document.getElementById('comments-list');
-    if (!commentsList) return;
-    
-    if (comments.length === 0) {
-        commentsList.innerHTML = '<p>还没有评论，快来抢占第一个沙发吧！</p>';
-        return;
-    }
-
-    commentsList.innerHTML = ''; // 清空旧评论
-    comments.forEach(comment => {
-        const commentElement = document.createElement('div');
-        commentElement.classList.add('comment');
-        const formattedDate = new Date(comment.created_at).toLocaleString(); // 使用更详细的时间
-        commentElement.innerHTML = `
-            <div class="comment-header">
-                <span class="comment-author">${comment.username}</span>
-                <span class="comment-date">${formattedDate}</span>
-            </div>
-            <p class="comment-content">${comment.content}</p>
-        `;
-        commentsList.appendChild(commentElement);
-    });
-}
 
 // =================================================================
 // 页面判断与事件监听 (整个应用的“大脑”)
 // =================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    let currentSortBy = 'time'; // 默认按时间排序
-    let currentSearchQuery = ''; // 默认没有搜索词
 
-    updateHeaderUI();
+    let currentSortBy = 'time';
+    let currentSearchQuery = '';
 
-    // --- 主题切换功能 ---
     const themeToggleButton = document.getElementById('theme-toggle-button');
     if (themeToggleButton) {
         themeToggleButton.addEventListener('click', () => {
             document.body.classList.toggle('dark-theme');
         });
     }
+
+    updateHeaderUI();
 
     const diaryContainer = document.getElementById('diary-container');
     const myDiariesTitle = document.querySelector('.page-title');
@@ -191,14 +201,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const signupForm = document.getElementById('signup-form');
     const loginForm = document.getElementById('login-form');
     const searchForm = document.getElementById('search-form');
+    const sortContainer = document.querySelector('.sort-container');
 
     if (searchForm) {
         searchForm.addEventListener('submit', async (event) => {
             event.preventDefault();
             const searchInput = document.getElementById('search-input');
             const query = searchInput.value.trim();
-            
-            currentSearchQuery = query; // 记录当前搜索词
+            currentSearchQuery = query;
 
             if (!query) {
                 if (myDiariesTitle) loadMyDiaries(currentSortBy);
@@ -208,7 +218,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const token = localStorage.getItem('jwtToken');
             let apiUrl = `/api/diaries/search?q=${encodeURIComponent(query)}&sortBy=${currentSortBy}`;
-            
             if (myDiariesTitle) {
                 apiUrl += '&scope=mine';
             }
@@ -218,10 +227,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     headers: token ? { 'Authorization': `Bearer ${token}` } : {}
                 });
                 if (!response.ok) throw new Error('搜索失败');
-                
                 const diaries = await response.json();
                 renderDiaries(diaries);
-
                 if (diaries.length === 0) {
                     diaryContainer.innerHTML = `<p>没有找到与“<span class="search-term">${query}</span>”相关的日记。</p>`;
                 }
@@ -231,29 +238,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    const sortContainer = document.querySelector('.sort-container');
+
     if (sortContainer) {
         sortContainer.addEventListener('click', (event) => {
             if (event.target.classList.contains('sort-button')) {
                 const selectedSort = event.target.dataset.sort;
-                
-                // 如果点击的已经是激活的按钮，则不执行任何操作
-                if (event.target.classList.contains('active')) {
-                    return;
-                }
-
-                currentSortBy = selectedSort; // 更新当前排序方式
-
-                // 更新按钮的激活状态
+                if (event.target.classList.contains('active')) return;
+                currentSortBy = selectedSort;
                 sortContainer.querySelector('.sort-button.active').classList.remove('active');
                 event.target.classList.add('active');
-
-                // 根据当前是在搜索结果页还是普通列表页，重新加载数据
                 if (currentSearchQuery) {
-                    // 如果有搜索词，则重新触发搜索
                     searchForm.dispatchEvent(new Event('submit', { cancelable: true }));
                 } else {
-                    // 否则，重新加载当前页面的列表
                     if (myDiariesTitle) {
                         loadMyDiaries(currentSortBy);
                     } else {
@@ -263,6 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    
     if (diaryContainer) {
         if (myDiariesTitle) {
             loadMyDiaries();
@@ -291,17 +288,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const actionsContainer = document.getElementById('detail-actions-container');
                 if (actionsContainer) {
                     const likeButtonClass = diary.user_has_liked ? 'like-button liked' : 'like-button';
-                    const heartSVG = `
-                        <svg class="heart-icon" viewBox="0 0 24 24" width="24" height="24" style="fill: currentColor;">
-                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                        </svg>
-                    `;
-                    actionsContainer.innerHTML = `
-                        <button class="${likeButtonClass}" data-diary-id="${diary.id}" data-liked="${diary.user_has_liked}">
-                            ${heartSVG}
-                        </button>
-                        <span class="like-count">${diary.like_count}</span>
-                    `;
+                    const heartSVG = `<svg class="heart-icon" viewBox="0 0 24 24" width="24" height="24" style="fill: currentColor;"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`;
+                    actionsContainer.innerHTML = `<button class="${likeButtonClass}" data-diary-id="${diary.id}" data-liked="${diary.user_has_liked}">${heartSVG}</button><span class="like-count">${diary.like_count}</span>`;
                 }
                 
                 const deleteButton = document.getElementById('delete-button');
@@ -343,7 +331,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     editLink.style.display = 'none';
                 }
 
-                // Fetch and render comments
                 const commentsResponse = await fetch(`/api/diaries/${diaryId}/comments`);
                 const comments = await commentsResponse.json();
                 renderComments(comments);
@@ -357,53 +344,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const token = localStorage.getItem('jwtToken');
         const commentForm = document.getElementById('comment-form');
         const commentLoginPrompt = document.getElementById('comment-login-prompt');
-        if (token) {
-            commentForm.style.display = 'block';
-            commentLoginPrompt.style.display = 'none';
-        } else {
-            commentForm.style.display = 'none';
-            commentLoginPrompt.style.display = 'block';
+        if (commentForm && commentLoginPrompt) {
+            if (token) {
+                commentForm.style.display = 'block';
+                commentLoginPrompt.style.display = 'none';
+            } else {
+                commentForm.style.display = 'none';
+                commentLoginPrompt.style.display = 'block';
+            }
         }
 
         if (diaryId) {
             loadDiaryDetail();
-            commentForm.addEventListener('submit', async (event) => {
-                // --- 【新增】导出为图片功能 ---
-                const exportButton = document.getElementById('export-button');
-                if (exportButton) {
-                    exportButton.addEventListener('click', () => {
-                        const diaryCard = document.getElementById('diary-detail-container');
-                        const diaryTitle = document.getElementById('detail-title').textContent || 'diary';
-
-                        // 可以在这里添加一个“正在生成图片...”的提示
-                        exportButton.textContent = '正在生成...';
-                        exportButton.disabled = true;
-
-                        html2canvas(diaryCard, {
-                            // 提高截图质量
-                            scale: 2, 
-                            useCORS: true // 允许加载跨域图片（如果有的话）
-                        }).then(canvas => {
-                            // 创建一个临时的 a 标签用于下载
-                            const link = document.createElement('a');
-                            link.href = canvas.toDataURL('image/png');
-                            link.download = `${diaryTitle.trim()}.png`; // 使用日记标题作为文件名
-                            
-                            // 触发点击以下载图片
-                            link.click();
-
-                            // 恢复按钮状态
-                            exportButton.textContent = '导出为图片';
-                            exportButton.disabled = false;
-                        }).catch(error => {
-                            console.error('导出图片失败:', error);
-                            alert('导出图片失败，请稍后重试。');
-                            // 恢复按钮状态
-                            exportButton.textContent = '导出为图片';
-                            exportButton.disabled = false;
-                        });
-                    });
-                }
+            if(commentForm) {
+              commentForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
                 const contentElement = document.getElementById('comment-content');
                 const content = contentElement.value.trim();
@@ -444,6 +398,30 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.error('评论提交失败:', error);
                     alert('评论失败，请稍后重试。');
                 }
+              });
+            }
+        }
+        
+        const exportButton = document.getElementById('export-button');
+        if (exportButton) {
+            exportButton.addEventListener('click', () => {
+                const diaryCard = document.getElementById('diary-detail-container');
+                const diaryTitle = document.getElementById('detail-title').textContent || 'diary';
+                exportButton.textContent = '正在生成...';
+                exportButton.disabled = true;
+                html2canvas(diaryCard, { scale: 2, useCORS: true }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.href = canvas.toDataURL('image/png');
+                    link.download = `${diaryTitle.trim()}.png`;
+                    link.click();
+                    exportButton.textContent = '导出为图片';
+                    exportButton.disabled = false;
+                }).catch(error => {
+                    console.error('导出图片失败:', error);
+                    alert('导出图片失败，请稍后重试。');
+                    exportButton.textContent = '导出为图片';
+                    exportButton.disabled = false;
+                });
             });
         }
     }

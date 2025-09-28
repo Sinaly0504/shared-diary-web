@@ -3,6 +3,10 @@
     font-family: 'Ma Shan Zheng'; /* 我们给这个字体起个名字，方便后面使用 */
     src: url('fonts/MaShanZheng-Regular.ttf'); /* 指向字体文件的正确路径 */
 }
+@font-face {
+    font-family: 'Zhi Mang Xing';
+    src: url('fonts/ZhiMangXing-Regular.ttf');
+}
 
 :root {
     /* 定义一套亮色主题的颜色变量 */
@@ -573,4 +577,50 @@ body.dark-theme {
     background-color: var(--accent-color);
     color: white;
     border-color: var(--accent-color);
+}
+
+/* --- 段评批注功能样式 --- */
+
+/* 悬浮的“批注”按钮 */
+#annotate-button {
+    position: absolute; /* 关键：让按钮可以根据坐标定位 */
+    display: none;      /* 默认隐藏 */
+    z-index: 1000;      /* 确保它在最上层 */
+    padding: 5px 10px;
+    font-size: 0.8em;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* --- 段评批注显示样式 --- */
+.annotation-bubble {
+    position: absolute; /* 绝对定位，由JS计算位置 */
+    transform: translateY(-50%); /* 技巧：让批注框能大致垂直居中于段落的中间位置 */
+    width: 150px; /* 固定宽度，可以根据喜好调整 */
+    padding: 10px;
+    background-color: #fffbe6; /* 淡黄色背景，像便签纸 */
+    border: 1px solid #ded7b8;
+    border-radius: 4px;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+    font-family: 'Zhi Mang Xing', cursive; /* 使用我们新的批注字体！ */
+    font-size: 1.1em;
+    color: #594524; /* 深棕色字体，更有复古感 */
+    line-height: 1.5;
+    z-index: 500; /* 层级低于“批注”按钮，避免遮挡 */
+    opacity: 0; /* 默认透明，用动画浮现 */
+    animation: fadeIn 0.5s forwards; /* 应用淡入动画 */
+}
+
+.annotation-bubble .author {
+    font-size: 0.8em;
+    font-weight: bold;
+    display: block;
+    margin-bottom: 5px;
+    color: #a1885c;
+    font-family: sans-serif; /* 作者名用普通字体，保持清晰 */
+}
+
+/* 定义一个淡入动画 */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }

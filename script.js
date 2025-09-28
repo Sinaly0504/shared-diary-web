@@ -270,7 +270,95 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (diaryDetailContainer) {
         const params = new URLSearchParams(window.location.search);
         const diaryId = params.get('id');
-        
+        // --- 【新增】段评功能：选中文字并显示批注按钮 ---
+        const contentContainer = document.getElementById('detail-content');
+        if (contentContainer) {
+            contentContainer.addEventListener('mouseup', (event) => {
+                setTimeout(() => {
+                    const selection = window.getSelection();
+                    const selectedText = selection.toString().trim();
+                    const diaryId = params.get('id'); // 我们需要日记ID
+
+                    let annotateButton = document.getElementById('annotate-button');
+                    if (!annotateButton) {
+                        annotateButton = document.createElement('button');
+                        annotateButton.id = 'annotate-button';
+                        annotateButton.className = 'nav-button';
+                        annotateButton.textContent = '批注';
+                        document.body.appendChild(annotateButton);
+                    }
+
+                    if (selectedText.length > 0 && selection.rangeCount > 0) {
+                        const range = selection.getRangeAt(0);
+                        
+                        // 找到选区所在的段落元素
+                        let parentElement = range.startContainer.parentElement;
+                        while (parentElement && !parentElement.id.startsWith('paragraph-')) {
+                            parentElement = parentElement.parentElement;
+                        }
+
+                        if (parentElement) { // 确保我们找到了一个段落
+                            const paragraphId = parentElement.id;
+                            const rect = range.getBoundingClientRect();
+                            
+                            annotateButton.style.display = 'block';
+                            annotateButton.style.top = `${window.scrollY + rect.top + rect.height}px`;
+                            annotateButton.style.left = `${window.scrollX + rect.right}px`;
+
+                            // 为按钮添加一次性的点击事件
+                            annotateButton.onclick = async () => {
+                                const token = localStorage.getItem('jwtToken');
+                                if (!token) {
+                                    alert('请先登录再发表批注！');
+                                    return;
+                                }
+
+                                const content = prompt('请输入你的批注：', selectedText);
+
+                                if (content && content.trim() !== '') {
+                                    try {
+                                        const response = await fetch('/api/annotations/create', {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                'Authorization': `Bearer ${token}`
+                                            },
+                                            body: JSON.stringify({
+                                                content: content,
+                                                diaryId: diaryId,
+                                                anchorParagraphId: paragraphId
+                                            })
+                                        });
+
+                                        if (response.ok) {
+                                            alert('批注成功！');
+                                        } else {
+                                            const error = await response.json();
+                                            alert(`批注失败: ${error.message}`);
+                                        }
+                                    } catch (error) {
+                                        console.error('批注请求失败:', error);
+                                        alert('批注失败，请检查网络连接。');
+                                    }
+                                }
+                                // 操作完成后隐藏按钮
+                                annotateButton.style.display = 'none';
+                            };
+                        }
+                    } else {
+                        annotateButton.style.display = 'none';
+                    }
+                }, 10); 
+            });
+
+            document.addEventListener('mousedown', (event) => {
+                const annotateButton = document.getElementById('annotate-button');
+                const selection = window.getSelection();
+                if (annotateButton && !annotateButton.contains(event.target) && selection.toString().trim().length === 0) {
+                    annotateButton.style.display = 'none';
+                }
+            });
+        }
         async function loadDiaryDetail() {
             const token = localStorage.getItem('jwtToken');
             try {
@@ -281,15 +369,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 const diary = await response.json();
                 
                 document.getElementById('detail-title').textContent = diary.title;
-                document.getElementById('detail-content').textContent = diary.content;
                 const formattedDate = new Date(diary.created_at).toLocaleDateString();
                 document.getElementById('detail-meta').innerHTML = `<span class="author">By: ${diary.username}</span><span class="date">${formattedDate}</span>`;
+                
+                // --- 【关键修改】按段落渲染日记内容 ---
+                const contentContainer = document.getElementById('detail-content');
+                contentContainer.innerHTML = ''; // 先清空容器
+                const paragraphs = diary.content.split('\n'); // 按换行符分割成段落数组
+
+                paragraphs.forEach((pText, index) => {
+                    if (pText.trim() !== '') { // 忽略可能存在的空行
+                        const pElement = document.createElement('p');
+                        pElement.id = `paragraph-${index}`; // 为每个段落设置唯一ID
+                        pElement.textContent = pText;
+                        contentContainer.appendChild(pElement);
+                    }
+                });
+                // --- 修改结束 ---
                 
                 const actionsContainer = document.getElementById('detail-actions-container');
                 if (actionsContainer) {
                     const likeButtonClass = diary.user_has_liked ? 'like-button liked' : 'like-button';
-                    const heartSVG = `<svg class="heart-icon" viewBox="0 0 24 24" width="24" height="24" style="fill: currentColor;"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`;
-                    actionsContainer.innerHTML = `<button class="${likeButtonClass}" data-diary-id="${diary.id}" data-liked="${diary.user_has_liked}">${heartSVG}</button><span class="like-count">${diary.like_count}</span>`;
+                    const heartSVG = `
+                        <svg class="heart-icon" viewBox="0 0 24 24" width="24" height="24" style="fill: currentColor;">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                        </svg>
+                    `;
+                    actionsContainer.innerHTML = `
+                        <button class="${likeButtonClass}" data-diary-id="${diary.id}" data-liked="${diary.user_has_liked}">
+                            ${heartSVG}
+                        </button>
+                        <span class="like-count">${diary.like_count}</span>
+                    `;
                 }
                 
                 const deleteButton = document.getElementById('delete-button');

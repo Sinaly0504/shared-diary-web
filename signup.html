@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - 共享日记</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header class="main-header">
+        <h1>加入 共享日记</h1>
+    </header>
+
+    <main class="content-area">
+        <form class="auth-form" id="signup-form">
+            <div class="form-group">
+                <label for="email">邮箱地址</label>
+                <input type="email" id="email" name="email" placeholder="请输入你的邮箱" required>
+            </div>
+            <div class="form-group">
+                <label for="password">密码 (至少6位)</label>
+                <input type="password" id="password" name="password" placeholder="请输入你的密码" required minlength="6">
+            </div>
+            <div class="form-actions">
+                <a href="index.html" class="nav-button secondary">已有账号？去登录</a>
+                <button type="submit" class="nav-button">注册</button>
+            </div>
+        </form>
+    </main>
+
+    <footer class="main-footer">
+        <p>&copy; 2025 ShareDiary. All Rights Reserved.</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

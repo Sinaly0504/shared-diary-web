@@ -1,4 +1,4 @@
-// --- 共享日记 脚本文件 v6.3: 最终修复版 ---
+// --- 共享日记 脚本文件 v7.0: 实现用户注册功能 ---
 
 // =================================================================
 // 辅助函数 (Helper Functions)
@@ -66,6 +66,7 @@ async function loadHomepage() {
 
 document.addEventListener('DOMContentLoaded', () => {
 
+    // --- 主题切换功能 (所有页面通用) ---
     const themeToggleButton = document.getElementById('theme-toggle-button');
     const bodyElement = document.body;
     if (themeToggleButton) { 
@@ -74,10 +75,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- 根据页面不同元素，执行不同逻辑 ---
     const diaryForm = document.querySelector('.diary-form');
     const diaryContainer = document.getElementById('diary-container');
     const diaryDetailContainer = document.getElementById('diary-detail-container');
+    const signupForm = document.getElementById('signup-form'); // 获取注册表单
 
+    // 1. 如果是“写日记”页面 (write.html)
     if (diaryForm) {
         diaryForm.addEventListener('submit', (event) => {
             event.preventDefault();
@@ -105,14 +109,14 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = 'index.html';
         });
     } 
+    // 2. 如果是主页 (index.html)
     else if (diaryContainer) {
         loadHomepage();
     }
+    // 3. 如果是详情页 (detail.html)
     else if (diaryDetailContainer) {
         const params = new URLSearchParams(window.location.search);
-        
-        // 【关键修复】将 parseInt 换成 parseFloat，以正确处理带小数的ID
-        const diaryId = parseFloat(params.get('id')); 
+        const diaryId = parseFloat(params.get('id'));
 
         const diaries = getDiariesFromStorage();
         const diary = diaries.find(d => d.id === diaryId);
@@ -136,5 +140,38 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             diaryDetailContainer.innerHTML = '<h1>哦哦，没有找到这篇日记...</h1><a href="index.html" class="nav-button secondary">返回首页</a>';
         }
+    }
+    // 4. 如果是注册页面 (signup.html)
+    else if (signupForm) {
+        signupForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const apiUrl = '/api/signup'; 
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }),
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('注册成功:', result);
+                    alert('注册成功！现在你可以去登录了。');
+                    window.location.href = 'index.html'; // 未来我们会跳转到登录页
+                } else {
+                    const errorResult = await response.json();
+                    alert(`注册失败: ${errorResult.message}`);
+                }
+            } catch (error) {
+                console.error('请求发送失败:', error);
+                alert('请求发送失败，请检查网络连接。');
+            }
+        });
     }
 });

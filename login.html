@@ -29,17 +29,19 @@
 
     <main class="auth-page">
         <div class="auth-container">
-            <h1>登录</h1>
+            <h1>登录共享日记</h1> 
             <form id="login-form">
                 <div class="form-group">
                     <label for="username">用户名</label>
-                    <input type="text" id="username" name="username" required>
+                    <input type="text" id="username" name="username" placeholder="请输入你的用户名" required>
                 </div>
                 <div class="form-group">
                     <label for="password">密码</label>
-                    <input type="password" id="password" name="password" required>
+                    <input type="password" id="password" name="password" placeholder="请输入你的密码" required>
                 </div>
-                <button type="submit" class="btn">登录</button>
+                <div class="form-group">
+                    <button type="submit" class="btn">登录</button>
+                </div>
             </form>
             <p id="auth-message" class="auth-message"></p>
             <p class="auth-switch">还没有账户？ <a href="signup.html">立即注册</a></p>

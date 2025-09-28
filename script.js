@@ -101,10 +101,11 @@ function renderDiaries(diaries) {
     });
 }
 
-async function loadHomepage() {
+async function loadHomepage(sortBy = 'time') {
+    currentSearchQuery = ''; // 每次加载主页时，清空搜索词
     const token = localStorage.getItem('jwtToken');
     try {
-        const response = await fetch('/api/diaries/list', {
+        const response = await fetch(`/api/diaries/list?sortBy=${sortBy}`, {
             headers: token ? { 'Authorization': `Bearer ${token}` } : {}
         });
         if (!response.ok) throw new Error('获取日记失败');
@@ -117,7 +118,8 @@ async function loadHomepage() {
     }
 }
 
-async function loadMyDiaries() {
+async function loadMyDiaries(sortBy = 'time') {
+    currentSearchQuery = ''; // 每次加载“我的日记”时，清空搜索词
     const diaryContainer = document.getElementById('diary-container');
     const token = localStorage.getItem('jwtToken');
     if (!token) {
@@ -126,7 +128,7 @@ async function loadMyDiaries() {
         return;
     }
     try {
-        const response = await fetch('/api/diaries/mine', {
+        const response = await fetch(`/api/diaries/mine?sortBy=${sortBy}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!response.ok) {
@@ -174,6 +176,8 @@ function renderComments(comments) {
 // =================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
+    let currentSortBy = 'time'; // 默认按时间排序
+    let currentSearchQuery = ''; // 默认没有搜索词
 
     updateHeaderUI();
 
@@ -194,16 +198,17 @@ document.addEventListener('DOMContentLoaded', () => {
             event.preventDefault();
             const searchInput = document.getElementById('search-input');
             const query = searchInput.value.trim();
+            
+            currentSearchQuery = query; // 记录当前搜索词
 
             if (!query) {
-                // 如果搜索框清空后提交，重新加载当前页面的所有日记
-                if (myDiariesTitle) loadMyDiaries();
-                else loadHomepage();
+                if (myDiariesTitle) loadMyDiaries(currentSortBy);
+                else loadHomepage(currentSortBy);
                 return;
             }
 
             const token = localStorage.getItem('jwtToken');
-            let apiUrl = `/api/diaries/search?q=${encodeURIComponent(query)}`;
+            let apiUrl = `/api/diaries/search?q=${encodeURIComponent(query)}&sortBy=${currentSortBy}`;
             
             if (myDiariesTitle) {
                 apiUrl += '&scope=mine';
@@ -227,7 +232,38 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    const sortContainer = document.querySelector('.sort-container');
+    if (sortContainer) {
+        sortContainer.addEventListener('click', (event) => {
+            if (event.target.classList.contains('sort-button')) {
+                const selectedSort = event.target.dataset.sort;
+                
+                // 如果点击的已经是激活的按钮，则不执行任何操作
+                if (event.target.classList.contains('active')) {
+                    return;
+                }
 
+                currentSortBy = selectedSort; // 更新当前排序方式
+
+                // 更新按钮的激活状态
+                sortContainer.querySelector('.sort-button.active').classList.remove('active');
+                event.target.classList.add('active');
+
+                // 根据当前是在搜索结果页还是普通列表页，重新加载数据
+                if (currentSearchQuery) {
+                    // 如果有搜索词，则重新触发搜索
+                    searchForm.dispatchEvent(new Event('submit', { cancelable: true }));
+                } else {
+                    // 否则，重新加载当前页面的列表
+                    if (myDiariesTitle) {
+                        loadMyDiaries(currentSortBy);
+                    } else {
+                        loadHomepage(currentSortBy);
+                    }
+                }
+            }
+        });
+    }
     if (diaryContainer) {
         if (myDiariesTitle) {
             loadMyDiaries();

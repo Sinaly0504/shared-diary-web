@@ -1,4 +1,4 @@
-// /api/diaries/mine.js (V2.0 - 附带点赞信息)
+// /api/diaries/mine.js (V3.0 - 支持排序)
 
 import { Pool } from 'pg';
 import jwt from 'jsonwebtoken';
@@ -16,6 +16,7 @@ export default async function handler(req, res) {
   }
 
   try {
+    const { sortBy } = req.query;
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ message: '未授权的访问' });
@@ -29,7 +30,11 @@ export default async function handler(req, res) {
     }
     const currentUserId = decodedToken.userId;
 
-    // 【关键修复】使用和 list.js 一样强大的 SQL 查询
+    let orderByClause = 'ORDER BY d.created_at DESC';
+    if (sortBy === 'likes') {
+      orderByClause = 'ORDER BY like_count DESC';
+    }
+
     const query = `
       SELECT
         d.id, d.title, d.content, d.created_at, u.username,
@@ -40,9 +45,9 @@ export default async function handler(req, res) {
       FROM diaries d
       INNER JOIN users u ON d.author_id = u.id
       LEFT JOIN likes l ON d.id = l.diary_id
-      WHERE d.author_id = $1 -- 只选择当前用户的日记
+      WHERE d.author_id = $1
       GROUP BY d.id, u.username
-      ORDER BY d.created_at DESC;
+      ${orderByClause};
     `;
     
     const { rows } = await pool.query(query, [currentUserId]);

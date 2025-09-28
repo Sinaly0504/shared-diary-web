@@ -1,4 +1,4 @@
-// /api/diaries/search.js (V2.0 - 支持范围搜索)
+// /api/diaries/search.js (V3.0 - 支持排序)
 
 import { Pool } from 'pg';
 import jwt from 'jsonwebtoken';
@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { q, scope } = req.query; // 新增获取 scope 参数
+    const { q, scope, sortBy } = req.query;
 
     if (!q) {
       return res.status(400).json({ message: '搜索关键词不能为空' });
@@ -32,6 +32,11 @@ export default async function handler(req, res) {
       } catch (e) {
         console.log("Invalid token, proceeding as guest.");
       }
+    }
+    
+    let orderByClause = 'ORDER BY d.created_at DESC';
+    if (sortBy === 'likes') {
+      orderByClause = 'ORDER BY like_count DESC';
     }
 
     let queryText = `
@@ -50,7 +55,6 @@ export default async function handler(req, res) {
     const searchTerm = `%${q}%`;
     let queryParams = [searchTerm, userId];
 
-    // 根据 scope 参数动态添加查询条件
     if (scope === 'mine' && userId) {
       queryText += ` AND d.author_id = $3`;
       queryParams.push(userId);
@@ -60,7 +64,7 @@ export default async function handler(req, res) {
 
     queryText += `
       GROUP BY d.id, u.username
-      ORDER BY d.created_at DESC;
+      ${orderByClause};
     `;
 
     const { rows } = await pool.query(queryText, queryParams);

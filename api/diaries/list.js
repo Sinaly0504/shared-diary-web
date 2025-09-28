@@ -1,4 +1,4 @@
-// /api/diaries/list.js (V3.0 - 附带点赞信息)
+// /api/diaries/list.js (V4.0 - 支持排序)
 
 import { Pool } from 'pg';
 import jwt from 'jsonwebtoken';
@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. 尝试获取并解码 token，以确定当前用户ID。如果未登录，则 userId 为 null。
+    const { sortBy } = req.query;
     let userId = null;
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -25,12 +25,15 @@ export default async function handler(req, res) {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         userId = decoded.userId;
       } catch (e) {
-        // Token 无效或过期，我们将其视为未登录
         console.log("Invalid token, proceeding as guest.");
       }
     }
 
-    // 2. 编写更复杂的 SQL 查询
+    let orderByClause = 'ORDER BY d.created_at DESC';
+    if (sortBy === 'likes') {
+      orderByClause = 'ORDER BY like_count DESC';
+    }
+
     const query = `
       SELECT
         d.id,
@@ -38,17 +41,16 @@ export default async function handler(req, res) {
         d.content,
         d.created_at,
         u.username,
-        COUNT(l.id)::int AS like_count, -- 计算点赞总数
-        -- 判断当前用户是否点赞
+        COUNT(l.id)::int AS like_count,
         CASE WHEN $1::UUID IS NOT NULL AND EXISTS (
           SELECT 1 FROM likes WHERE diary_id = d.id AND user_id = $1
         ) THEN TRUE ELSE FALSE END AS user_has_liked
       FROM diaries d
       INNER JOIN users u ON d.author_id = u.id
-      LEFT JOIN likes l ON d.id = l.diary_id -- 使用 LEFT JOIN 连接 likes 表
+      LEFT JOIN likes l ON d.id = l.diary_id
       WHERE d.privacy_level = 'public'
-      GROUP BY d.id, u.username -- 按日记进行分组
-      ORDER BY d.created_at DESC;
+      GROUP BY d.id, u.username
+      ${orderByClause};
     `;
 
     const { rows } = await pool.query(query, [userId]);

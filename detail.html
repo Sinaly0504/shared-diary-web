@@ -39,8 +39,26 @@
             <button id="delete-button" class="nav-button">删除日记</button> 
         </div>
 
+                <!-- 【重要】恢复完整的评论区结构 -->
         <div id="comments-section" class="comments-section">
+            <h2>评论区</h2>
+
+            <!-- 评论列表将由 JavaScript 动态插入到这里 -->
+            <div id="comments-list">
+                <p>正在加载评论...</p>
             </div>
+
+            <!-- 评论表单 -->
+            <form id="comment-form" class="comment-form" style="display: none;">
+                <textarea id="comment-content" placeholder="发表你的看法..." required></textarea>
+                <button type="submit" class="nav-button">发表评论</button>
+            </form>
+            
+            <!-- 未登录时的提示 -->
+            <p id="comment-login-prompt" style="display: block;">
+                <a href="login.html">登录</a>后才能发表评论。
+            </p>
+        </div>
     </main>
 
     <footer class="main-footer">

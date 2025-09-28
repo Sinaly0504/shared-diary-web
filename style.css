@@ -593,21 +593,21 @@ body.dark-theme {
 
 /* --- 段评批注显示样式 --- */
 .annotation-bubble {
-    position: absolute; /* 绝对定位，由JS计算位置 */
-    transform: translateY(-50%); /* 技巧：让批注框能大致垂直居中于段落的中间位置 */
-    width: 150px; /* 固定宽度，可以根据喜好调整 */
+    position: absolute;
+    /* 【修改】不再使用 transform，直接由 JS 计算 top 值 */
+    width: 160px; /* 可以适当加宽 */
     padding: 10px;
-    background-color: #fffbe6; /* 淡黄色背景，像便签纸 */
+    background-color: #fffbe6;
     border: 1px solid #ded7b8;
     border-radius: 4px;
     box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
-    font-family: 'Zhi Mang Xing', cursive; /* 使用我们新的批注字体！ */
+    font-family: 'Zhi Mang Xing', cursive;
     font-size: 1.1em;
-    color: #594524; /* 深棕色字体，更有复古感 */
+    color: #594524;
     line-height: 1.5;
-    z-index: 500; /* 层级低于“批注”按钮，避免遮挡 */
-    opacity: 0; /* 默认透明，用动画浮现 */
-    animation: fadeIn 0.5s forwards; /* 应用淡入动画 */
+    z-index: 500;
+    opacity: 0;
+    animation: fadeIn 0.5s forwards;
 }
 
 .annotation-bubble .author {
@@ -616,7 +616,7 @@ body.dark-theme {
     display: block;
     margin-bottom: 5px;
     color: #a1885c;
-    font-family: sans-serif; /* 作者名用普通字体，保持清晰 */
+    font-family: sans-serif;
 }
 
 /* 定义一个淡入动画 */
@@ -654,7 +654,16 @@ body.dark-theme {
     width: 0;
     height: 0;
 }
-
+/* 确保日记卡片是定位的父级 */
+.diary-detail-card {
+    position: relative; /* 【重要】确保这一行存在 */
+    background-color: var(--bg-color-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 30px 40px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 8px var(--shadow-color);
+}
 .slider {
     position: absolute;
     top: 0;

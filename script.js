@@ -134,12 +134,11 @@ function renderAnnotations(annotations) {
     const diaryCard = document.getElementById('diary-detail-container');
     if (!diaryCard) return;
 
-    // 先清除旧的批注
     document.querySelectorAll('.annotation-bubble').forEach(bubble => bubble.remove());
 
     if (!annotations || annotations.length === 0) return;
 
-    const paragraphOffsets = {}; // 用于记录每个段落的批注垂直偏移量
+    const paragraphOffsets = {};
 
     annotations.forEach(annotation => {
         const anchorParagraph = document.getElementById(annotation.anchor_paragraph_id);
@@ -147,7 +146,6 @@ function renderAnnotations(annotations) {
         if (anchorParagraph) {
             const paragraphId = annotation.anchor_paragraph_id;
             
-            // 初始化偏移量
             if (!paragraphOffsets[paragraphId]) {
                 paragraphOffsets[paragraphId] = 0;
             }
@@ -160,26 +158,29 @@ function renderAnnotations(annotations) {
                 ${annotation.content}
             `;
 
-            // 【修复】将批注框添加到日记卡片内部
             diaryCard.appendChild(bubble);
 
-            // 计算位置
+            // 【关键修改】新的定位算法
             const anchorRect = anchorParagraph.getBoundingClientRect();
             const cardRect = diaryCard.getBoundingClientRect();
             
-            const topPosition = anchorRect.top - cardRect.top + anchorRect.height / 2;
-            const leftPosition = anchorRect.width + 20; // 在段落右侧20px处
+            // top = 段落顶部相对于卡片顶部的距离
+            const topPosition = anchorRect.top - cardRect.top;
+            // left = 卡片的宽度 + 15px 的间距
+            const leftPosition = cardRect.width + 15;
 
-            // 【修复】应用垂直偏移量，防止重叠
+            // 应用垂直偏移量，防止重叠
             bubble.style.top = `${topPosition + paragraphOffsets[paragraphId]}px`;
             bubble.style.left = `${leftPosition}px`;
 
             // 更新下一个批注的偏移量
-            paragraphOffsets[paragraphId] += bubble.offsetHeight + 5; // 5px 的间距
+            // 我们需要先让浏览器渲染一下，才能获取到 bubble 的真实高度
+            setTimeout(() => {
+                paragraphOffsets[paragraphId] += bubble.offsetHeight + 5;
+            }, 0);
         }
     });
 }
-
 
 async function loadHomepage(sortBy = 'time') {
     const token = localStorage.getItem('jwtToken');

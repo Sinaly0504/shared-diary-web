@@ -155,10 +155,53 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    // 如果是详情页 (detail.html) - 注意：详情页逻辑未来也需要改造
+    // 【关键修改 V2.0】如果是详情页 (detail.html)
     else if (diaryDetailContainer) {
-        // ... (当前详情页和删除功能仍基于本地存储，我们将在后续步骤改造)
-        diaryDetailContainer.innerHTML = '<h1>详情页正在升级中...</h1><a href="index.html" class="nav-button secondary">返回首页</a>';
+        const params = new URLSearchParams(window.location.search);
+        const diaryId = params.get('id');
+
+        async function loadDiaryDetail() {
+            try {
+                const response = await fetch(`/api/diaries/${diaryId}`);
+                if (!response.ok) {
+                    throw new Error('日记未找到');
+                }
+                const diary = await response.json();
+                
+                // 填充页面内容
+                document.getElementById('detail-title').textContent = diary.title;
+                document.getElementById('detail-content').textContent = diary.content;
+                const formattedDate = new Date(diary.created_at).toLocaleDateString();
+                document.getElementById('detail-meta').innerHTML = `
+                    <span class="author">By: ${diary.username}</span>
+                    <span class="date">${formattedDate}</span>
+                `;
+                
+                // 【权限控制】只有作者本人才能看到删除按钮
+                const token = localStorage.getItem('jwtToken');
+                const deleteButton = document.getElementById('delete-button');
+                if (token) {
+                    const currentUser = parseJwt(token);
+                    if (currentUser.username === diary.username) {
+                        deleteButton.style.display = 'inline-block';
+                        // 我们将在下一步实现删除功能
+                        // deleteButton.addEventListener('click', handleDelete); 
+                    } else {
+                        deleteButton.style.display = 'none';
+                    }
+                } else {
+                    deleteButton.style.display = 'none';
+                }
+
+            } catch (error) {
+                console.error('加载日记详情失败:', error);
+                diaryDetailContainer.innerHTML = '<h1>哦哦，没有找到这篇日记...</h1><a href="index.html" class="nav-button secondary">返回首页</a>';
+            }
+        }
+
+        if (diaryId) {
+            loadDiaryDetail();
+        }
     }
     // 如果是注册页面 (signup.html)
     else if (signupForm) {

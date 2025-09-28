@@ -130,6 +130,39 @@ function renderComments(comments) {
     });
 }
 
+function renderAnnotations(annotations) {
+    // 先清除旧的批注，以防重复渲染
+    document.querySelectorAll('.annotation-bubble').forEach(bubble => bubble.remove());
+
+    if (!annotations || annotations.length === 0) {
+        return; // 如果没有批注，就什么都不做
+    }
+
+    annotations.forEach(annotation => {
+        const anchorParagraph = document.getElementById(annotation.anchor_paragraph_id);
+        
+        // 只有在页面上找到了对应的段落时，才显示批注
+        if (anchorParagraph) {
+            const bubble = document.createElement('div');
+            bubble.className = 'annotation-bubble';
+            
+            // 填充批注内容
+            bubble.innerHTML = `
+                <span class="author">${annotation.username}:</span>
+                ${annotation.content}
+            `;
+
+            // 将批注框添加到 body 中，以便绝对定位
+            document.body.appendChild(bubble);
+
+            // 计算并设置批注框的位置
+            const rect = anchorParagraph.getBoundingClientRect();
+            bubble.style.left = `${rect.right + 10 + window.scrollX}px`;
+            bubble.style.top = `${rect.top + rect.height / 2 + window.scrollY}px`;
+        }
+    });
+}
+
 
 async function loadHomepage(sortBy = 'time') {
     const token = localStorage.getItem('jwtToken');
@@ -372,21 +405,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 const formattedDate = new Date(diary.created_at).toLocaleDateString();
                 document.getElementById('detail-meta').innerHTML = `<span class="author">By: ${diary.username}</span><span class="date">${formattedDate}</span>`;
                 
-                // --- 【关键修改】按段落渲染日记内容 ---
                 const contentContainer = document.getElementById('detail-content');
-                contentContainer.innerHTML = ''; // 先清空容器
-                const paragraphs = diary.content.split('\n'); // 按换行符分割成段落数组
+                contentContainer.innerHTML = '';
+                const paragraphs = diary.content.split('\n');
 
                 paragraphs.forEach((pText, index) => {
-                    if (pText.trim() !== '') { // 忽略可能存在的空行
+                    if (pText.trim() !== '') {
                         const pElement = document.createElement('p');
-                        pElement.id = `paragraph-${index}`; // 为每个段落设置唯一ID
+                        pElement.id = `paragraph-${index}`;
                         pElement.textContent = pText;
                         contentContainer.appendChild(pElement);
                     }
                 });
-                // --- 修改结束 ---
-                
+
                 const actionsContainer = document.getElementById('detail-actions-container');
                 if (actionsContainer) {
                     const likeButtonClass = diary.user_has_liked ? 'like-button liked' : 'like-button';
@@ -442,9 +473,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     editLink.style.display = 'none';
                 }
 
+                // 获取并渲染普通评论
                 const commentsResponse = await fetch(`/api/diaries/${diaryId}/comments`);
                 const comments = await commentsResponse.json();
                 renderComments(comments);
+
+                // 【新增】获取并渲染段评
+                const annotationsResponse = await fetch(`/api/diaries/${diaryId}/annotations`);
+                const annotations = await annotationsResponse.json();
+                renderAnnotations(annotations);
 
             } catch (error) {
                 console.error('加载日记详情失败:', error);

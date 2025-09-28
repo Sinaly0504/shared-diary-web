@@ -515,3 +515,30 @@ body.dark-theme {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     color: var(--font-color-secondary);
 }
+
+/* --- 搜索框样式 --- */
+.search-container {
+    margin-bottom: 30px;
+}
+
+.search-form {
+    display: flex;
+    gap: 10px;
+    max-width: 500px;
+    margin: 0 auto; /* 让搜索框在容器内居中 */
+}
+
+.search-form input[type="search"] {
+    flex-grow: 1; /* 让输入框占据尽可能多的空间 */
+    padding: 10px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 20px; /* 圆角胶囊形状 */
+    font-size: 1em;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.search-form input[type="search"]:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 5px var(--accent-color);
+}

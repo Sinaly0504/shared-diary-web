@@ -178,11 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateHeaderUI();
 
     const themeToggleButton = document.getElementById('theme-toggle-button');
-    if (themeToggleButton) {
-        themeToggleButton.addEventListener('click', () => {
-            document.body.classList.toggle('dark-theme');
-        });
-    }
+    if (themeToggleButton) { /* ... */ }
 
     const diaryContainer = document.getElementById('diary-container');
     const myDiariesTitle = document.querySelector('.page-title');
@@ -191,6 +187,46 @@ document.addEventListener('DOMContentLoaded', () => {
     const editForm = document.getElementById('edit-form');
     const signupForm = document.getElementById('signup-form');
     const loginForm = document.getElementById('login-form');
+    const searchForm = document.getElementById('search-form');
+
+    if (searchForm) {
+        searchForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const searchInput = document.getElementById('search-input');
+            const query = searchInput.value.trim();
+
+            if (!query) {
+                // 如果搜索框清空后提交，重新加载当前页面的所有日记
+                if (myDiariesTitle) loadMyDiaries();
+                else loadHomepage();
+                return;
+            }
+
+            const token = localStorage.getItem('jwtToken');
+            let apiUrl = `/api/diaries/search?q=${encodeURIComponent(query)}`;
+            
+            if (myDiariesTitle) {
+                apiUrl += '&scope=mine';
+            }
+
+            try {
+                const response = await fetch(apiUrl, {
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                });
+                if (!response.ok) throw new Error('搜索失败');
+                
+                const diaries = await response.json();
+                renderDiaries(diaries);
+
+                if (diaries.length === 0) {
+                    diaryContainer.innerHTML = `<p>没有找到与“<span class="search-term">${query}</span>”相关的日记。</p>`;
+                }
+            } catch (error) {
+                console.error("搜索请求失败:", error);
+                alert('搜索失败，请稍后再试。');
+            }
+        });
+    }
 
     if (diaryContainer) {
         if (myDiariesTitle) {

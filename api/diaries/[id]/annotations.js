@@ -1,4 +1,4 @@
-// /api/diaries/[id]/annotations.js (V2.0 - 使用坐标)
+// /api/diaries/[id]/annotations.js (V3.0 - 返回字体和颜色)
 
 import { Pool } from 'pg';
 
@@ -17,13 +17,15 @@ export default async function handler(req, res) {
   try {
     const { id: diaryId } = req.query;
 
-    // 【修改】SQL 查询语句，获取坐标而不是段落ID
+    // 【重要修改】SQL 查询语句，增加 font_family 和 color 字段
     const query = `
       SELECT
         a.id,
         a.content,
         a.position_x,
         a.position_y,
+        a.font_family,
+        a.color,
         a.created_at,
         u.username
       FROM annotations a
@@ -35,7 +37,8 @@ export default async function handler(req, res) {
     const { rows } = await pool.query(query, [diaryId]);
     res.status(200).json(rows);
 
-  } catch (error) {
+  } catch (error)
+  {
     console.error('获取批注列表时出错:', error);
     res.status(500).json({ message: '服务器内部错误' });
   }

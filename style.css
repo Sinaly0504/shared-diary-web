@@ -591,23 +591,20 @@ body.dark-theme {
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
-/* --- 段评批注显示样式 --- */
+/* --- 段评批注显示样式 (最终版) --- */
 .annotation-bubble {
-    position: absolute;
-    width: 160px;
-    padding: 10px;
-    background-color: #fffbe6;
-    border: 1px solid #ded7b8;
-    border-radius: 4px;
-    box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
-    font-family: 'Zhi Mang Xing', cursive;
-    font-size: 1.1em;
-    color: #594524;
-    line-height: 1.5;
-    z-index: 500;
-    opacity: 0;
-    animation: fadeIn 0.5s forwards;
-    cursor: grab; /* 【新增】给批注框一个“可抓取”的鼠标手势 */
+position: absolute;
+padding: 10px;
+min-width: 100px;
+background-color: transparent;
+border: none;
+box-shadow: none;
+font-size: 1.1em;
+line-height: 1.5;
+z-index: 500;
+opacity: 0;
+animation: fadeIn 0.5s forwards;
+cursor: grab;
 }
 
 .annotation-bubble .author {
@@ -734,4 +731,45 @@ input:checked + .slider:before {
     font-size: 0.8em;
     font-family: sans-serif;
     color: #a1885c;
+}
+
+/* --- 【新增】批注浮动工具栏样式 --- */
+#annotation-toolbar {
+    position: absolute; /* 绝对定位，和之前的按钮一样 */
+    display: none;      /* 默认隐藏 */
+    z-index: 1000;      /* 确保它在最上层 */
+    background-color: var(--bg-color-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px var(--shadow-color);
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 工具栏中的字体选择器和颜色选择器 */
+#annotation-toolbar select,
+#annotation-toolbar input[type="color"] {
+    font-family: sans-serif; /* 使用清晰的系统字体 */
+    font-size: 0.9em;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 4px;
+    background-color: var(--bg-color-main);
+    color: var(--font-color-main);
+}
+
+/* 颜色选择器的特殊样式 */
+#annotation-toolbar input[type="color"] {
+    width: 30px;
+    height: 30px;
+    padding: 2px; /* 给一点内边距，让颜色块看起来更舒服 */
+    cursor: pointer;
+}
+
+/* 工具栏中的“批注”按钮 */
+#annotation-toolbar .nav-button {
+    padding: 4px 10px;
+    font-size: 0.9em;
 }

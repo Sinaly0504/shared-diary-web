@@ -134,6 +134,7 @@ function renderAnnotations(annotations) {
     const diaryCard = document.getElementById('diary-detail-container');
     if (!diaryCard) return;
 
+    // 先移除所有旧的批注，防止重复渲染
     document.querySelectorAll('.annotation-bubble').forEach(bubble => bubble.remove());
 
     if (!annotations || annotations.length === 0) return;
@@ -142,19 +143,23 @@ function renderAnnotations(annotations) {
         const bubble = document.createElement('div');
         bubble.className = 'annotation-bubble';
         
-        // 我们将在下一步添加点击显示作者的功能
         bubble.innerHTML = `
             <span class="author" style="display: none;">${annotation.username}:</span>
-            ${annotation.content}
+            <div class="annotation-content">${annotation.content}</div>
         `;
         
-        diaryCard.appendChild(bubble);
-
-        // 【关键修改】根据数据库中的坐标设置位置
+        // 【重要修改】应用从数据库读取的个性化样式
+        bubble.style.fontFamily = annotation.font_family; // 设置字体
+        bubble.style.color = annotation.color;           // 设置颜色
+        
+        // 根据数据库中的坐标设置位置
         bubble.style.left = `${annotation.position_x}px`;
         bubble.style.top = `${annotation.position_y}px`;
+        
+        diaryCard.appendChild(bubble);
     });
 }
+
 async function loadHomepage(sortBy = 'time') {
     const token = localStorage.getItem('jwtToken');
     try {
@@ -312,90 +317,120 @@ document.addEventListener('DOMContentLoaded', () => {
         const diaryId = params.get('id');
         // --- 【新增】段评功能：选中文字并显示批注按钮 ---
         const contentContainer = document.getElementById('detail-content');
+        // --- 【重要修改】段评功能 V2: 选中文字并显示“批注工具栏” ---
         if (contentContainer) {
             contentContainer.addEventListener('mouseup', (event) => {
+                // 稍微延迟执行，确保浏览器已经确定了文本选区
                 setTimeout(() => {
                     const selection = window.getSelection();
                     const selectedText = selection.toString().trim();
-                    const diaryId = params.get('id'); // 我们需要日记ID
+                    const diaryId = new URLSearchParams(window.location.search).get('id');
 
-                    let annotateButton = document.getElementById('annotate-button');
-                    if (!annotateButton) {
-                        annotateButton = document.createElement('button');
-                        annotateButton.id = 'annotate-button';
+                    // 寻找或创建工具栏
+                    let toolbar = document.getElementById('annotation-toolbar');
+                    if (!toolbar) {
+                        toolbar = document.createElement('div');
+                        toolbar.id = 'annotation-toolbar';
+                        
+                        // --- 创建工具栏内部的元素 ---
+                        // 1. 字体选择器
+                        const fontSelector = document.createElement('select');
+                        fontSelector.innerHTML = `
+                            <option value="Zhi Mang Xing">行楷</option>
+                            <option value="Ma Shan Zheng">手写体</option>
+                            <option value="sans-serif">系统默认</option>
+                        `;
+
+                        // 2. 颜色选择器
+                        const colorPicker = document.createElement('input');
+                        colorPicker.type = 'color';
+                        colorPicker.value = '#594524'; // 默认颜色
+
+                        // 3. 批注按钮
+                        const annotateButton = document.createElement('button');
                         annotateButton.className = 'nav-button';
                         annotateButton.textContent = '批注';
-                        document.body.appendChild(annotateButton);
+
+                        // --- 将元素添加到工具栏 ---
+                        toolbar.appendChild(fontSelector);
+                        toolbar.appendChild(colorPicker);
+                        toolbar.appendChild(annotateButton);
+                        document.body.appendChild(toolbar);
+
+                        // --- 为按钮绑定核心的点击事件 ---
+                        annotateButton.addEventListener('click', async () => {
+                            const token = localStorage.getItem('jwtToken');
+                            if (!token) {
+                                alert('请先登录再发表批注！');
+                                return;
+                            }
+
+                            const content = prompt('请输入你的批注：', window.getSelection().toString().trim());
+                            
+                            if (content && content.trim() !== '') {
+                                // 【关键】获取用户选择的字体和颜色
+                                const selectedFont = fontSelector.value;
+                                const selectedColor = colorPicker.value;
+                                const range = window.getSelection().getRangeAt(0);
+                                const rect = range.getBoundingClientRect();
+                                
+                                try {
+                                    const response = await fetch('/api/annotations/create', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'Authorization': `Bearer ${token}`
+                                        },
+                                        body: JSON.stringify({
+                                            content: content,
+                                            diaryId: diaryId,
+                                            // 保存批注时，我们选择一个相对稳定的点作为坐标
+                                            position_x: window.scrollX + rect.left,
+                                            position_y: window.scrollY + rect.top,
+                                            font_family: selectedFont, // 发送字体
+                                            color: selectedColor       // 发送颜色
+                                        })
+                                    });
+
+                                    if (response.ok) {
+                                        alert('批注成功！');
+                                        // 成功后重新加载日记详情，以显示新批注
+                                        loadDiaryDetail(); 
+                                    } else {
+                                        const error = await response.json();
+                                        alert(`批注失败: ${error.message}`);
+                                    }
+                                } catch (error) {
+                                    console.error('批注请求失败:', error);
+                                    alert('批注失败，请检查网络连接。');
+                                }
+                            }
+                            // 操作完成后隐藏工具栏
+                            toolbar.style.display = 'none';
+                        });
                     }
 
+                    // --- 控制工具栏的显示与隐藏 ---
                     if (selectedText.length > 0 && selection.rangeCount > 0) {
                         const range = selection.getRangeAt(0);
+                        const rect = range.getBoundingClientRect();
                         
-                        // 找到选区所在的段落元素
-                        let parentElement = range.startContainer.parentElement;
-                        while (parentElement && !parentElement.id.startsWith('paragraph-')) {
-                            parentElement = parentElement.parentElement;
-                        }
-
-                        if (parentElement) { // 确保我们找到了一个段落
-                            const paragraphId = parentElement.id;
-                            const rect = range.getBoundingClientRect();
-                            
-                            annotateButton.style.display = 'block';
-                            annotateButton.style.top = `${window.scrollY + rect.top + rect.height}px`;
-                            annotateButton.style.left = `${window.scrollX + rect.right}px`;
-
-                            // 为按钮添加一次性的点击事件
-                            annotateButton.onclick = async () => {
-                                const token = localStorage.getItem('jwtToken');
-                                if (!token) {
-                                    alert('请先登录再发表批注！');
-                                    return;
-                                }
-
-                                const content = prompt('请输入你的批注：', selectedText);
-
-                                if (content && content.trim() !== '') {
-                                    try {
-                                        const response = await fetch('/api/annotations/create', {
-                                            method: 'POST',
-                                            headers: {
-                                                'Content-Type': 'application/json',
-                                                'Authorization': `Bearer ${token}`
-                                            },
-                                            body: JSON.stringify({
-                                                content: content,
-                                                diaryId: diaryId,
-                                                anchorParagraphId: paragraphId
-                                            })
-                                        });
-
-                                        if (response.ok) {
-                                            alert('批注成功！');
-                                        } else {
-                                            const error = await response.json();
-                                            alert(`批注失败: ${error.message}`);
-                                        }
-                                    } catch (error) {
-                                        console.error('批注请求失败:', error);
-                                        alert('批注失败，请检查网络连接。');
-                                    }
-                                }
-                                // 操作完成后隐藏按钮
-                                annotateButton.style.display = 'none';
-                            };
-                        }
+                        toolbar.style.display = 'flex';
+                        // 将工具栏定位在所选文字的上方
+                        toolbar.style.top = `${window.scrollY + rect.top - toolbar.offsetHeight - 5}px`;
+                        toolbar.style.left = `${window.scrollX + rect.left}px`;
                     } else {
-                        annotateButton.style.display = 'none';
+                        toolbar.style.display = 'none';
                     }
-                }, 10); 
+                }, 10);
             });
 
+            // 当在页面其他地方点击时，也隐藏工具栏
             document.addEventListener('mousedown', (event) => {
-                const annotateButton = document.getElementById('annotate-button');
-                const selection = window.getSelection();
-                if (annotateButton && !annotateButton.contains(event.target) && selection.toString().trim().length === 0) {
-                    annotateButton.style.display = 'none';
+                const toolbar = document.getElementById('annotation-toolbar');
+                // 如果点击的不是工具栏内部，并且当前没有文字被选中，则隐藏
+                if (toolbar && !toolbar.contains(event.target) && window.getSelection().toString().trim().length === 0) {
+                    toolbar.style.display = 'none';
                 }
             });
         }

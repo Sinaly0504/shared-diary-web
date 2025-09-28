@@ -229,3 +229,49 @@ body.dark-theme {
     line-height: 1.8; /* 增加正文行高，让段落更易读 */
     font-size: 1.1em;
 }
+
+/* 8. 新的头部和认证页面样式 */
+.main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo-link, .logo-link:hover {
+    text-decoration: none;
+}
+
+.user-auth-links {
+    font-size: 0.9em;
+}
+
+.user-auth-links a {
+    color: var(--font-color-secondary);
+    text-decoration: none;
+    margin-left: 15px;
+    transition: color 0.3s ease;
+}
+
+.user-auth-links a:hover {
+    color: var(--accent-color);
+}
+
+/* 认证页面的特殊样式 */
+.auth-page {
+    font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
+}
+
+.auth-form {
+    max-width: 400px;
+    margin: 0 auto; /* 让表单在主内容区水平居中 */
+    background: var(--bg-color-card);
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px var(--shadow-color);
+}
+.auth-form h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    font-family: 'Ma Shan Zheng', sans-serif; /* 标题仍然使用艺术字体 */
+    font-size: 2em;
+}

@@ -144,32 +144,30 @@ document.addEventListener('DOMContentLoaded', () => {
     // 4. 如果是注册页面 (signup.html)
     else if (signupForm) {
         signupForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
+            event.preventDefault(); 
 
-            const email = document.getElementById('email').value;
+            // 【关键修改】获取 username 的值
+            const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
+
             const apiUrl = '/api/signup'; 
 
             try {
                 const response = await fetch(apiUrl, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ email, password }),
+                    headers: { 'Content-Type': 'application/json' },
+                    // 【关键修改】发送 username
+                    body: JSON.stringify({ username, password }), 
                 });
 
                 if (response.ok) {
-                    const result = await response.json();
-                    console.log('注册成功:', result);
                     alert('注册成功！现在你可以去登录了。');
-                    window.location.href = 'index.html'; // 未来我们会跳转到登录页
+                    window.location.href = 'index.html'; 
                 } else {
                     const errorResult = await response.json();
                     alert(`注册失败: ${errorResult.message}`);
                 }
             } catch (error) {
-                console.error('请求发送失败:', error);
                 alert('请求发送失败，请检查网络连接。');
             }
         });

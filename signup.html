@@ -6,24 +6,29 @@
     <title>注册 - 共享日记</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="auth-page">
 
     <header class="main-header">
-        <h1>加入 共享日记</h1>
+        <a href="index.html" class="logo-link"><h1>共享日记</h1></a>
+        <div class="user-auth-links">
+            <a href="signup.html">注册</a>
+            <a href="#">登录</a>
+        </div>
     </header>
 
     <main class="content-area">
         <form class="auth-form" id="signup-form">
+            <h2>加入 共享日记</h2>
             <div class="form-group">
-                <label for="email">邮箱地址</label>
-                <input type="email" id="email" name="email" placeholder="请输入你的邮箱" required>
+                <label for="username">用户名</label>
+                <input type="text" id="username" name="username" placeholder="请输入你的用户名" required>
             </div>
             <div class="form-group">
                 <label for="password">密码 (至少6位)</label>
                 <input type="password" id="password" name="password" placeholder="请输入你的密码" required minlength="6">
             </div>
             <div class="form-actions">
-                <a href="index.html" class="nav-button secondary">已有账号？去登录</a>
+                <a href="#" class="nav-button secondary">已有账号？去登录</a>
                 <button type="submit" class="nav-button">注册</button>
             </div>
         </form>

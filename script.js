@@ -1,4 +1,4 @@
-// --- 共享日记 脚本文件 v19.0: 实现点赞功能 ---
+// --- 共享日记 脚本文件 v20.0: 修复点赞功能所有 Bug ---
 
 // =================================================================
 // 辅助函数 (Helper Functions)
@@ -25,7 +25,6 @@ function updateHeaderUI() {
     const decodedToken = parseJwt(token);
     if (decodedToken && decodedToken.username) {
       const username = decodedToken.username;
-      
       authLinksContainer.innerHTML = `
         <div class="user-menu">
             <button class="user-menu-trigger">欢迎, ${username} ▼</button>
@@ -35,22 +34,18 @@ function updateHeaderUI() {
             </div>
         </div>
       `;
-
       const trigger = authLinksContainer.querySelector('.user-menu-trigger');
       const dropdown = authLinksContainer.querySelector('.user-menu-dropdown');
       const logoutLink = authLinksContainer.querySelector('#logout-link');
-
       trigger.addEventListener('click', (event) => {
         event.stopPropagation();
         dropdown.classList.toggle('is-open');
       });
-
       document.addEventListener('click', () => {
         if (dropdown.classList.contains('is-open')) {
           dropdown.classList.remove('is-open');
         }
       });
-
       if (logoutLink) {
         logoutLink.addEventListener('click', function(event) {
           event.preventDefault();
@@ -58,7 +53,6 @@ function updateHeaderUI() {
           window.location.href = 'index.html';
         });
       }
-
       if (writeDiaryBtn) writeDiaryBtn.style.display = 'inline-block';
     }
   } else if (authLinksContainer) {
@@ -79,7 +73,11 @@ function renderDiaries(diaries) {
         card.classList.add('diary-card');
         
         const likeButtonClass = entry.user_has_liked ? 'like-button liked' : 'like-button';
-        const heartIcon = entry.user_has_liked ? '♥' : '♡';
+        const heartSVG = `
+            <svg class="heart-icon" viewBox="0 0 24 24" width="24" height="24" style="fill: currentColor;">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+        `;
 
         card.innerHTML = `
             <a href="detail.html?id=${entry.id}" class="card-link">
@@ -94,7 +92,7 @@ function renderDiaries(diaries) {
             </div>
             <div class="card-actions">
                 <button class="${likeButtonClass}" data-diary-id="${entry.id}" data-liked="${entry.user_has_liked}">
-                    ${heartIcon}
+                    ${heartSVG}
                 </button>
                 <span class="like-count">${entry.like_count}</span>
             </div>
@@ -194,6 +192,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 const formattedDate = new Date(diary.created_at).toLocaleDateString();
                 document.getElementById('detail-meta').innerHTML = `<span class="author">By: ${diary.username}</span><span class="date">${formattedDate}</span>`;
                 
+                const actionsContainer = document.getElementById('detail-actions-container');
+                if (actionsContainer) {
+                    const likeButtonClass = diary.user_has_liked ? 'like-button liked' : 'like-button';
+                    const heartSVG = `
+                        <svg class="heart-icon" viewBox="0 0 24 24" width="24" height="24" style="fill: currentColor;">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                        </svg>
+                    `;
+                    actionsContainer.innerHTML = `
+                        <button class="${likeButtonClass}" data-diary-id="${diary.id}" data-liked="${diary.user_has_liked}">
+                            ${heartSVG}
+                        </button>
+                        <span class="like-count">${diary.like_count}</span>
+                    `;
+                }
+
                 const deleteButton = document.getElementById('delete-button');
                 const editLink = document.getElementById('edit-link');
                 

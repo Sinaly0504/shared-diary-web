@@ -863,11 +863,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 全局点赞点击事件监听器
+    // 全局点赞点击事件监听器 (修正版)
     document.body.addEventListener('click', async (event) => {
+        // 寻找被点击元素的最上层的 .like-button 父元素
         const likeButton = event.target.closest('.like-button');
+        
+        // 如果没有找到，或者点击的不是点赞按钮，就直接退出
         if (!likeButton) return;
 
+        // 阻止默认行为（例如，如果按钮在链接内部，阻止页面跳转）
         event.preventDefault();
         
         const token = localStorage.getItem('jwtToken');
@@ -876,40 +880,21 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = 'login.html';
             return;
         }
-        // --- 【新增】处理批注翻页逻辑 ---
-        if (prevButton || nextButton) {
-            event.preventDefault();
-            const bubble = event.target.closest('.annotation-bubble');
-            const contentDivs = bubble.querySelectorAll('.annotation-content');
-            const pager = bubble.querySelector('.pager');
-            let currentPage = parseInt(bubble.dataset.currentPage);
-            const totalPages = contentDivs.length;
 
-            // 隐藏当前页
-            contentDivs[currentPage].style.display = 'none';
-
-            if (prevButton) {
-                currentPage = (currentPage - 1 + totalPages) % totalPages;
-            } else if (nextButton) {
-                currentPage = (currentPage + 1) % totalPages;
-            }
-
-            // 显示新页面
-            contentDivs[currentPage].style.display = 'block';
-            bubble.dataset.currentPage = currentPage;
-            pager.textContent = `${currentPage + 1} / ${totalPages}`;
-        }
+        // --- 这里是核心的点赞逻辑 ---
 
         const diaryId = likeButton.dataset.diaryId;
         const isLiked = likeButton.dataset.liked === 'true';
         const likeCountSpan = likeButton.nextElementSibling;
         const initialLikeCount = parseInt(likeCountSpan.textContent);
 
+        // 1. 立即更新前端UI，给用户即时反馈
         const newLikedState = !isLiked;
         likeButton.dataset.liked = newLikedState;
         likeButton.classList.toggle('liked');
         likeCountSpan.textContent = newLikedState ? initialLikeCount + 1 : initialLikeCount - 1;
 
+        // 2. 异步向后端发送请求
         try {
             const method = newLikedState ? 'POST' : 'DELETE';
             const response = await fetch(`/api/diaries/${diaryId}/like`, {
@@ -917,12 +902,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
+            // 3. 如果后端操作失败，则回滚前端UI
             if (!response.ok) {
                 throw new Error('操作失败');
             }
 
         } catch (error) {
             console.error("点赞/取消点赞失败:", error);
+            // 将UI恢复到操作前的状态
             likeButton.dataset.liked = isLiked;
             likeButton.classList.toggle('liked');
             likeCountSpan.textContent = initialLikeCount;

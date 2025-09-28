@@ -773,3 +773,58 @@ input:checked + .slider:before {
     padding: 4px 10px;
     font-size: 0.9em;
 }
+
+/* --- 【新增】响应式设计：移动端适配 --- */
+
+@media (max-width: 768px) {
+    /* 1. 调整基础字体大小和布局内边距 */
+    body {
+        font-size: 16px; /* 在手机上给一个明确的基础字号 */
+    }
+
+    .main-header, .main-nav, .content-area, .main-footer {
+        padding: 15px; /* 减少左右内边距，给内容更多空间 */
+    }
+
+    /* 2. 让头部 Logo 和用户链接垂直排列 */
+    .main-header {
+        flex-direction: column; /* 垂直堆叠 */
+        gap: 15px; /* 增加 logo 和链接之间的间距 */
+    }
+    
+    /* 3. 调整详情页和表单的内边距 */
+    .diary-detail-card, .auth-form {
+        padding: 20px 25px; /* 减少内边距 */
+    }
+
+    #detail-title {
+        font-size: 2em; /* 适当缩小标题 */
+    }
+    /* 4. 瀑布流卡片变为单列 */
+    .waterfall-container {
+        /* 我们之前的 grid 布局已经很智能，这里可以不用改，
+           但如果想强制单列，可以写 grid-template-columns: 1fr; */
+        gap: 15px; /* 减小卡片间距 */
+    }
+
+    /* 5. 导航按钮和表单按钮，让它们更适合点击 */
+    .main-nav, .form-actions {
+        flex-direction: column; /* 让按钮垂直排列 */
+        align-items: stretch;   /* 让按钮撑满宽度 */
+        gap: 10px;
+    }
+
+    .nav-button {
+        width: 100%; /* 按钮宽度占满，更容易点击 */
+        text-align: center;
+    }
+    
+    /* 6. 优化搜索和排序区域 */
+    .search-form {
+        flex-direction: column;
+    }
+    .sort-container {
+        flex-wrap: wrap; /* 允许按钮换行 */
+        justify-content: center;
+    }
+}

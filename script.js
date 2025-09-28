@@ -404,86 +404,65 @@ document.addEventListener('DOMContentLoaded', () => {
         const params = new URLSearchParams(window.location.search);
         const diaryId = params.get('id');
         // --- 【新增】段评功能：选中文字并显示批注按钮 ---
+        // --- 【重要修改】段评功能 V3: 兼容移动端触摸事件 ---
         const contentContainer = document.getElementById('detail-content');
-        // --- 【重要修改】段评功能 V2: 选中文字并显示“批注工具栏” ---
         if (contentContainer) {
-            contentContainer.addEventListener('mouseup', (event) => {
-                // 稍微延迟执行，确保浏览器已经确定了文本选区
+            
+            // 1. 将核心的显示逻辑封装成一个独立的函数
+            const showAnnotationToolbar = () => {
+                // 稍微延迟执行，确保浏览器已经更新了文本选区
                 setTimeout(() => {
                     const selection = window.getSelection();
                     const selectedText = selection.toString().trim();
+                    // ... (这里是所有创建和显示工具栏的代码，从 `const diaryId = ...` 开始)
+                    // ... (一直到 `} else { toolbar.style.display = 'none'; }` 结束)
+                    // 注意：为了简洁，我在这里省略了这部分代码，你只需要把之前的逻辑完整地移入这个函数即可
+                    
+                    // 下面是完整的被移入的代码
                     const diaryId = new URLSearchParams(window.location.search).get('id');
-
-                    // 寻找或创建工具栏
                     let toolbar = document.getElementById('annotation-toolbar');
                     if (!toolbar) {
                         toolbar = document.createElement('div');
                         toolbar.id = 'annotation-toolbar';
-                        
-                        // --- 创建工具栏内部的元素 ---
-                        // 1. 字体选择器
-                        const fontSelector = document.createElement('select');
-                        fontSelector.innerHTML = `
-                            <option value="Zhi Mang Xing">行楷</option>
-                            <option value="Ma Shan Zheng">手写体</option>
-                            <option value="sans-serif">系统默认</option>
+                        toolbar.innerHTML = `
+                            <select id="font-select">
+                                <option value="Zhi Mang Xing">行楷</option>
+                                <option value="Ma Shan Zheng">手写体</option>
+                                <option value="sans-serif">系统默认</option>
+                            </select>
+                            <input type="color" id="color-picker" value="#594524">
+                            <button class="nav-button" id="create-annotation-btn">批注</button>
                         `;
-
-                        // 2. 颜色选择器
-                        const colorPicker = document.createElement('input');
-                        colorPicker.type = 'color';
-                        colorPicker.value = '#594524'; // 默认颜色
-
-                        // 3. 批注按钮
-                        const annotateButton = document.createElement('button');
-                        annotateButton.className = 'nav-button';
-                        annotateButton.textContent = '批注';
-
-                        // --- 将元素添加到工具栏 ---
-                        toolbar.appendChild(fontSelector);
-                        toolbar.appendChild(colorPicker);
-                        toolbar.appendChild(annotateButton);
                         document.body.appendChild(toolbar);
 
-                        // --- 为按钮绑定核心的点击事件 ---
-                        annotateButton.addEventListener('click', async () => {
+                        toolbar.querySelector('#create-annotation-btn').addEventListener('click', async () => {
                             const token = localStorage.getItem('jwtToken');
                             if (!token) {
                                 alert('请先登录再发表批注！');
                                 return;
                             }
-
                             const content = prompt('请输入你的批注：', window.getSelection().toString().trim());
-                            
                             if (content && content.trim() !== '') {
-                                // 【关键】获取用户选择的字体和颜色
-                                const selectedFont = fontSelector.value;
-                                const selectedColor = colorPicker.value;
+                                const selectedFont = document.getElementById('font-select').value;
+                                const selectedColor = document.getElementById('color-picker').value;
                                 const range = window.getSelection().getRangeAt(0);
                                 const rect = range.getBoundingClientRect();
-                                
                                 try {
                                     const response = await fetch('/api/annotations/create', {
                                         method: 'POST',
-                                        headers: {
-                                            'Content-Type': 'application/json',
-                                            'Authorization': `Bearer ${token}`
-                                        },
+                                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                                         body: JSON.stringify({
                                             content: content,
                                             diaryId: diaryId,
-                                            // 【重要修改】在发送前对坐标进行四舍五入取整
                                             position_x: Math.round(window.scrollX + rect.left),
                                             position_y: Math.round(window.scrollY + rect.top),
                                             font_family: selectedFont,
                                             color: selectedColor
                                         })
                                     });
-
                                     if (response.ok) {
                                         alert('批注成功！');
-                                        // 成功后重新加载日记详情，以显示新批注
-                                        loadDiaryDetail(); 
+                                        loadDiaryDetail();
                                     } else {
                                         const error = await response.json();
                                         alert(`批注失败: ${error.message}`);
@@ -493,34 +472,37 @@ document.addEventListener('DOMContentLoaded', () => {
                                     alert('批注失败，请检查网络连接。');
                                 }
                             }
-                            // 操作完成后隐藏工具栏
                             toolbar.style.display = 'none';
                         });
                     }
 
-                    // --- 控制工具栏的显示与隐藏 ---
                     if (selectedText.length > 0 && selection.rangeCount > 0) {
                         const range = selection.getRangeAt(0);
                         const rect = range.getBoundingClientRect();
-                        
                         toolbar.style.display = 'flex';
-                        // 将工具栏定位在所选文字的上方
                         toolbar.style.top = `${window.scrollY + rect.top - toolbar.offsetHeight - 5}px`;
                         toolbar.style.left = `${window.scrollX + rect.left}px`;
                     } else {
                         toolbar.style.display = 'none';
                     }
-                }, 10);
-            });
 
-            // 当在页面其他地方点击时，也隐藏工具栏
-            document.addEventListener('mousedown', (event) => {
-                const toolbar = document.getElementById('annotation-toolbar');
-                // 如果点击的不是工具栏内部，并且当前没有文字被选中，则隐藏
-                if (toolbar && !toolbar.contains(event.target) && window.getSelection().toString().trim().length === 0) {
+                }, 100); // 在移动端，延迟可以稍微长一点点，确保选区渲染完成
+            };
+
+            // 2. 同时为“鼠标松开”和“触摸结束”绑定这个函数
+            contentContainer.addEventListener('mouseup', showAnnotationToolbar);
+            contentContainer.addEventListener('touchend', showAnnotationToolbar);
+
+            // 3. 同样，隐藏逻辑也需要兼容触摸
+            const hideToolbar = (event) => {
+                 const toolbar = document.getElementById('annotation-toolbar');
+                 if (toolbar && !toolbar.contains(event.target) && window.getSelection().toString().trim().length === 0) {
                     toolbar.style.display = 'none';
                 }
-            });
+            };
+            
+            document.addEventListener('mousedown', hideToolbar);
+            document.addEventListener('touchstart', hideToolbar);
         }
         async function loadDiaryDetail() {
             const token = localStorage.getItem('jwtToken');

@@ -1,4 +1,4 @@
-// --- 共享日记 脚本文件 v8.0: 实现登录状态管理 ---
+// --- 共享日记 脚本文件 v9.0: 实现前端权限控制 ---
 
 // =================================================================
 // 辅助函数 (Helper Functions)
@@ -18,12 +18,14 @@ function parseJwt(token) {
   }
 }
 
-// --- 更新头部UI以反映登录状态 ---
+// --- 更新头部UI以反映登录状态 (V2.0, 带权限控制) ---
 function updateHeaderUI() {
   const authLinksContainer = document.querySelector('.user-auth-links');
+  const writeDiaryBtn = document.getElementById('write-diary-btn'); // 获取写日记按钮
   const token = localStorage.getItem('jwtToken');
 
   if (token && authLinksContainer) {
+    // --- 用户已登录 ---
     const decodedToken = parseJwt(token);
     if (decodedToken && decodedToken.username) {
       const username = decodedToken.username;
@@ -31,6 +33,11 @@ function updateHeaderUI() {
         <span class="welcome-message">欢迎, ${username}</span>
         <a href="#" id="logout-link">退出</a>
       `;
+
+      // 显示“写日记”按钮
+      if (writeDiaryBtn) {
+        writeDiaryBtn.style.display = 'inline-block';
+      }
 
       const logoutLink = document.getElementById('logout-link');
       if (logoutLink) {
@@ -42,13 +49,20 @@ function updateHeaderUI() {
       }
     }
   } else if (authLinksContainer) {
+    // --- 用户未登录 ---
     authLinksContainer.innerHTML = `
       <a href="signup.html">注册</a>
       <a href="login.html">登录</a>
     `;
+
+    // 隐藏“写日记”按钮
+    if (writeDiaryBtn) {
+      writeDiaryBtn.style.display = 'none';
+    }
   }
 }
 
+// --- 单机版日记数据读写函数 (未来会被后端API替代) ---
 function getDiariesFromStorage() {
     const diariesJSON = localStorage.getItem('diaries');
     return diariesJSON ? JSON.parse(diariesJSON) : null;
@@ -104,30 +118,48 @@ async function loadHomepage() {
 
 document.addEventListener('DOMContentLoaded', () => {
 
-    // 立即更新头部UI，判断登录状态
+    // 立即更新头部UI，判断登录状态并控制按钮显示
     updateHeaderUI();
-
-    // --- 主题切换功能 (所有页面通用) ---
-    // 注意：你的 HTML 中没有 theme-toggle-button，这个功能可能之前被移除了
-    // 如果需要，请确保 HTML 中有 <button id="theme-toggle-button">切换主题</button>
-    const themeToggleButton = document.getElementById('theme-toggle-button');
-    const bodyElement = document.body;
-    if (themeToggleButton) {
-        themeToggleButton.addEventListener('click', () => {
-            bodyElement.classList.toggle('dark-theme');
-        });
-    }
 
     // --- 根据页面不同元素，执行不同逻辑 ---
     const diaryForm = document.querySelector('.diary-form');
     const diaryContainer = document.getElementById('diary-container');
     const diaryDetailContainer = document.getElementById('diary-detail-container');
     const signupForm = document.getElementById('signup-form');
-    const loginForm = document.getElementById('login-form'); // 将登录表单也移到这里
+    const loginForm = document.getElementById('login-form');
 
     // 1. 如果是“写日记”页面 (write.html)
     if (diaryForm) {
-        // ... (这部分代码保持不变)
+        // --- 页面守卫：检查是否登录 ---
+        const token = localStorage.getItem('jwtToken');
+        if (!token) {
+            alert('请先登录才能写日记哦！');
+            window.location.href = 'login.html'; // 重定向到登录页
+            return; // 阻止后续代码执行
+        }
+
+        // --- 提交表单逻辑 ---
+        diaryForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const title = document.getElementById('diary-title').value;
+            const content = document.getElementById('diary-content').value;
+            if (!title.trim() || !content.trim()) {
+                alert('标题和内容都不能为空哦！');
+                return;
+            }
+            const newDiary = {
+                id: Date.now(),
+                title: title,
+                content: content,
+                author: "我自己",
+                date: new Date().toLocaleDateString()
+            };
+            const existingDiaries = getDiariesFromStorage() || [];
+            existingDiaries.push(newDiary);
+            saveDiariesToStorage(existingDiaries);
+            alert('发布成功！');
+            window.location.href = 'index.html';
+        });
     }
     // 2. 如果是主页 (index.html)
     else if (diaryContainer) {
@@ -135,7 +167,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // 3. 如果是详情页 (detail.html)
     else if (diaryDetailContainer) {
-        // ... (这部分代码保持不变)
+        const params = new URLSearchParams(window.location.search);
+        const diaryId = parseFloat(params.get('id'));
+        const diaries = getDiariesFromStorage();
+        const diary = diaries.find(d => d.id === diaryId);
+        if (diary) {
+            document.getElementById('detail-title').textContent = diary.title;
+            document.getElementById('detail-content').textContent = diary.content;
+            document.getElementById('detail-meta').innerHTML = `
+                <span class="author">By: ${diary.author}</span>
+                <span class="date">${diary.date}</span>
+            `;
+            document.getElementById('delete-button').addEventListener('click', () => {
+                if (confirm('你确定要删除这篇日记吗？此操作无法撤销。')) {
+                    const updatedDiaries = diaries.filter(d => d.id !== diaryId);
+                    saveDiariesToStorage(updatedDiaries);
+                    alert('删除成功！');
+                    window.location.href = 'index.html';
+                }
+            });
+        } else {
+            diaryDetailContainer.innerHTML = '<h1>哦哦，没有找到这篇日记...</h1><a href="index.html" class="nav-button secondary">返回首页</a>';
+        }
     }
     // 4. 如果是注册页面 (signup.html)
     else if (signupForm) {
@@ -151,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 if (response.ok) {
                     alert('注册成功！现在你可以去登录了。');
-                    window.location.href = 'login.html'; // 跳转到登录页更友好
+                    window.location.href = 'login.html';
                 } else {
                     const errorResult = await response.json();
                     alert(`注册失败: ${errorResult.message}`);
@@ -161,7 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    // 5. 【关键改动】如果是登录页面 (login.html)
+    // 5. 如果是登录页面 (login.html)
     else if (loginForm) {
         const authMessage = document.getElementById('auth-message');
         loginForm.addEventListener('submit', async function(event) {
